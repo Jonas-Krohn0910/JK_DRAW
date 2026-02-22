@@ -2,10 +2,11 @@ import requests
 import zipfile
 import io
 import os
+import shutil
 import tkinter.messagebox as mb
+
 # JK_DRAW - Engineering Visualization Tool
-# Author: Jonas Krohn FMS
-# Created: 2024
+# Author: Jonas
 # License: MIT
 
 UPDATE_URL_VERSION = "https://raw.githubusercontent.com/Jonas-Krohn0910/JK_DRAW/main/src/version.txt"
@@ -83,7 +84,7 @@ def update_available(local, online):
 
 
 # ---------------------------------------------------------
-# DOWNLOAD & UDPAKNING
+# DOWNLOAD & UDPAKNING (FIXET VERSION)
 # ---------------------------------------------------------
 
 def download_and_extract_zip():
@@ -92,14 +93,40 @@ def download_and_extract_zip():
         r = requests.get(UPDATE_URL_ZIP, timeout=10)
         r.raise_for_status()
 
+        # Midlertidig mappe
+        temp_dir = os.path.join(get_project_root(), "_update_temp")
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        os.makedirs(temp_dir)
+
+        print(f"[DEBUG] Udpakker ZIP midlertidigt i: {temp_dir}")
         z = zipfile.ZipFile(io.BytesIO(r.content))
+        z.extractall(temp_dir)
 
-        extract_path = get_project_root()
-        print(f"[DEBUG] Udpakker ZIP til projektrod: {extract_path}")
+        # GitHub laver altid én undermappe, fx JK_DRAW-main
+        extracted_root = os.path.join(temp_dir, os.listdir(temp_dir)[0])
+        print(f"[DEBUG] Filer fundet i: {extracted_root}")
 
-        z.extractall(extract_path)
+        project_root = get_project_root()
 
-        print("[DEBUG] ZIP udpakket uden fejl")
+        # Kopiér ALLE filer fra extracted_root → project_root
+        for item in os.listdir(extracted_root):
+            s = os.path.join(extracted_root, item)
+            d = os.path.join(project_root, item)
+
+            if os.path.isdir(s):
+                if os.path.exists(d):
+                    shutil.rmtree(d)
+                shutil.copytree(s, d)
+            else:
+                shutil.copy2(s, d)
+
+        print("[DEBUG] Opdatering kopieret til projektroden")
+
+        # Ryd op
+        shutil.rmtree(temp_dir)
+        print("[DEBUG] Midlertidige filer slettet")
+
         return True
 
     except Exception as e:
@@ -156,4 +183,3 @@ def check_for_updates(show_popup=False):
 
 if __name__ == "__main__":
     check_for_updates(show_popup=False)
-
