@@ -99,6 +99,9 @@ class VectorTab:
         self.show_names = tk.BooleanVar(value=True)
         ttk.Checkbutton(file_frame, text="Vis navne", variable=self.show_names,
                         command=self.redraw_plot).grid(row=4, column=0, pady=5)
+        
+        self.show_grid = tk.BooleanVar(value=True) 
+        ttk.Checkbutton( file_frame, text="Vis grid", variable=self.show_grid, command=self.redraw_plot ).grid(row=5, column=0, pady=5)
 
         # ---------- Højre panel ----------
         list_frame = ttk.LabelFrame(self.frame, text="Punkter og vektorer")
@@ -955,7 +958,7 @@ class VectorTab:
         ylim = self.ax.get_ylim()
 
         self.ax.clear()
-        self.ax.grid(True)
+        self.ax.grid(self.show_grid.get())
         self.ax.set_aspect("equal", adjustable="box")
 
         self.text_objects = []
