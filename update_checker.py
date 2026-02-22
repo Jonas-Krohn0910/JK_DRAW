@@ -19,14 +19,14 @@ LOCAL_VERSION_FILE = "version.txt"
 # MAPPEROOT
 # ---------------------------------------------------------
 
-def get_src_root():
-    """Returnerer mappen hvor updater.py ligger (src/)."""
+def get_project_root():
+    """Returnerer projektroden (mappen hvor updater_checker.py ligger)."""
     return os.path.dirname(os.path.abspath(__file__))
 
 
-def get_project_root():
-    """Returnerer projektroden (mappen over src/)."""
-    return os.path.dirname(get_src_root())
+def get_src_root():
+    """Returnerer src-mappen inde i projektroden."""
+    return os.path.join(get_project_root(), "src")
 
 
 # ---------------------------------------------------------
@@ -84,7 +84,7 @@ def update_available(local, online):
 
 
 # ---------------------------------------------------------
-# DOWNLOAD & UDPAKNING (FIXET VERSION)
+# DOWNLOAD & UDPAKNING (KORREKT VERSION)
 # ---------------------------------------------------------
 
 def download_and_extract_zip():
@@ -107,12 +107,24 @@ def download_and_extract_zip():
         extracted_root = os.path.join(temp_dir, os.listdir(temp_dir)[0])
         print(f"[DEBUG] Filer fundet i: {extracted_root}")
 
-        project_root = get_project_root()
+        src_root = get_src_root()
 
-        # Kopiér ALLE filer fra extracted_root → project_root
-        for item in os.listdir(extracted_root):
-            s = os.path.join(extracted_root, item)
-            d = os.path.join(project_root, item)
+        # Kopiér ALLE filer fra extracted_root/src → src/
+        new_src = os.path.join(extracted_root, "src")
+
+        if not os.path.exists(new_src):
+            print("[FEJL] ZIP indeholder ikke en src-mappe!")
+            return False
+
+        print("[DEBUG] Opdaterer src-mappen...")
+
+        for item in os.listdir(new_src):
+            s = os.path.join(new_src, item)
+            d = os.path.join(src_root, item)
+
+            # Undgå at slette updater_checker.py
+            if item == "updater_checker.py":
+                continue
 
             if os.path.isdir(s):
                 if os.path.exists(d):
@@ -121,7 +133,24 @@ def download_and_extract_zip():
             else:
                 shutil.copy2(s, d)
 
-        print("[DEBUG] Opdatering kopieret til projektroden")
+        print("[DEBUG] src/ opdateret korrekt")
+
+        # Opdater filer i projektroden (fx version.txt)
+        for item in os.listdir(extracted_root):
+            if item == "src":
+                continue
+
+            s = os.path.join(extracted_root, item)
+            d = os.path.join(get_project_root(), item)
+
+            if os.path.isdir(s):
+                if os.path.exists(d):
+                    shutil.rmtree(d)
+                shutil.copytree(s, d)
+            else:
+                shutil.copy2(s, d)
+
+        print("[DEBUG] Projektrod opdateret korrekt")
 
         # Ryd op
         shutil.rmtree(temp_dir)

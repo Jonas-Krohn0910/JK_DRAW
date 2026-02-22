@@ -4,7 +4,14 @@ from vector_tab import VectorTab
 from help_tab import HelpTab
 from funktionsfit import Funktionsfit
 from funktionstegner import Funktionstegner
-from update_checker import check_for_updates   # ← NYT
+import sys
+import os
+
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+from updater_checker import check_for_updates
+
+
 
 class MainApp:
     def __init__(self, root):
