@@ -1,0 +1,45 @@
+FUNKTIONSFIT
+--------------------------------------
+
+Generelt:
+- Importér et datasæt fra Excel (mindst to kolonner)
+- Vælg hvilken kolonne der skal bruges som X og Y
+- Vælg en funktionstype og få vist både graf, formel og R²-værdi
+
+Lineær regression:
+- Finder den bedste rette linje gennem punkterne
+- Formel: f(x) = ax + b
+- Bruges når data følger en nogenlunde lige trend
+
+Polynomiel regression:
+- Tilpasser en polynomiel kurve af valgfri grad (2–6)
+- Formel: f(x) = axⁿ + bxⁿ⁻¹ + ... + c
+- God til data med buer, knæk eller komplekse forløb
+
+Eksponentiel regression:
+- Kræver at alle y-værdier er positive
+- Formel: f(x) = a · e^(bx)
+- Bruges når data vokser eller aftager hurtigt
+
+Logaritmisk regression:
+- Kræver at alle x-værdier er positive
+- Formel: f(x) = a · ln(x) + b
+- God til data der stiger hurtigt og flader ud
+
+Potensfunktion:
+- Kræver at både x og y er positive
+- Formel: f(x) = a · x^b
+- Bruges ofte i fysik, biologi og skalering
+
+R²-værdi:
+- Viser hvor godt funktionen passer til data
+- 1.00 = perfekt fit
+- 0.00 = ingen sammenhæng
+
+Plot:
+- Viser datapunkter og den valgte funktion
+- Brug “Ryd plot” for at starte forfra
+
+Fejlmeddelelser:
+- Vises hvis data ikke passer til den valgte funktionstype
+- Fx negative værdier ved logaritmisk eller eksponentiel fit

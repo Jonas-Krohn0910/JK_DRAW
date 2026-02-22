@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 import os
+import re
+import webbrowser
 
 class HelpTab:
     def __init__(self, parent):
@@ -44,14 +46,22 @@ class HelpTab:
         # Indlæs tekst
         text = self._load_text(filepath)
 
-        # Vis tekst
-        ttk.Label(
-            scroll_frame,
-            text=text,
-            wraplength=700,
-            justify="left",
-            anchor="nw"
-        ).pack(fill="both", expand=True, padx=10, pady=10)
+        # Vis tekst med klikbare links
+        self._insert_text_with_links(scroll_frame, text)
+
+    # ---------- Gør links klikbare ----------
+    def _insert_text_with_links(self, parent, text):
+        url_pattern = r"(https?://[^\s]+)"
+        parts = re.split(url_pattern, text)
+
+        for part in parts:
+            if re.match(url_pattern, part):
+                link = tk.Label(parent, text=part, fg="blue", cursor="hand2")
+                link.bind("<Button-1>", lambda e, url=part: webbrowser.open(url))
+                link.pack(anchor="w", padx=10, pady=2)
+            else:
+                label = tk.Label(parent, text=part, justify="left", wraplength=700, anchor="nw")
+                label.pack(anchor="w", padx=10, pady=2)
 
     # ---------- Læs tekstfil ----------
     def _load_text(self, filepath):

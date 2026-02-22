@@ -1,0 +1,115 @@
+Vektorværktøj – Hjælp og Dokumentation
+--------------------------------------
+
+Dette værktøj bruges til at tegne, analysere og manipulere vektorer og punkter
+i et koordinatsystem. Det er udviklet til undervisning, el‑lære, mekanik og
+andre fag, hvor visuelle vektorer er nødvendige.
+
+
+INTRODUKTION
+--------------------------------------
+Når du åbner værktøjet, ser du et koordinatsystem med grid. Du kan zoome,
+flytte rundt og bruge Matplotlibs værktøjslinje til navigation.
+
+
+OPRET VEKTORER
+--------------------------------------
+I venstre panel kan du oprette nye vektorer. Du kan vælge:
+
+- Længde
+- Vinkel i grader
+- Farve
+- Linjetype
+- Reference (standard eller reference‑linje)
+- Startpunkt (origin, punkt eller slutpunkt af en anden vektor)
+- Navn (valgfrit)
+
+Tryk "Tilføj vektor" for at tegne vektoren.
+
+
+OPRET PUNKTER
+--------------------------------------
+Tryk "Opret punkt" og klik derefter i grafen.
+
+Punktet:
+- får automatisk et navn (P1, P2, P3 ...)
+- kan bruges som startpunkt for vektorer
+- kan flyttes ved at klikke og trække
+
+
+FLYT PUNKTER OG LABELS
+--------------------------------------
+Du kan flytte punkter ved at klikke og trække dem.
+Du kan flytte vektornavne ved at trække labelen.
+Alt snapper til grid for præcision.
+
+
+REFERENCE-LINJER
+--------------------------------------
+Du kan oprette reference‑linjer, som bruges til at måle vinkler ud fra.
+
+En reference‑linje:
+- starter i valgt startpunkt
+- har en fast længde
+- får en vinkel baseret på reference + brugerens vinkel
+- kan redigeres i listen
+
+
+FILHÅNDTERING
+--------------------------------------
+Under fanen "Fil" kan du:
+
+- Gem projekt (punkter og vektorer gemmes i en tekstfil)
+- Åbn projekt (indlæser tidligere gemte filer)
+- Ryd alt (fjerner alle punkter og vektorer)
+
+Projektfiler er menneskelæsbart tekstformat.
+
+
+LISTE OVER PUNKTER OG VEKTORER
+--------------------------------------
+I højre side findes en oversigt over alle elementer.
+
+Du kan:
+- se koordinater
+- se længde og vinkel
+- se farve og linjetype
+- dobbeltklikke for at redigere
+- slette valgte elementer
+
+Du kan også vælge to vektorer og udføre operationer.
+
+
+VEKTOROPERATIONER
+--------------------------------------
+
+Vektorsum (A + B):
+- Laver en ny vektor fra origo
+- Summen af de to valgte vektorer
+- Tegnes som dotted linje
+
+Vektorforskel (A - B):
+- Tegnes fra B’s slutpunkt til A’s slutpunkt
+- Viser den geometriske forskel
+
+Resultant:
+- Tegnes fra A’s startpunkt til B’s slutpunkt
+- Viser forbindelsesvektoren mellem to vektorer
+
+
+ZOOM
+--------------------------------------
+Du kan zoome ind og ud med knapperne:
+
+- "+" for at zoome ind
+- "-" for at zoome ud
+
+Zoom-procenten vises i midten.
+
+
+TIPS
+--------------------------------------
+- Brug farver til at adskille systemer
+- Flyt labels for at undgå overlap
+- Brug punkter til konstruktioner
+- Ryd grafen jævnligt for at holde overblikket
