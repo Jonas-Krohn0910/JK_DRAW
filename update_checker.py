@@ -4,6 +4,8 @@ import io
 import os
 import shutil
 import tkinter.messagebox as mb
+import subprocess 
+import sys
 
 # JK_DRAW - Engineering Visualization Tool
 # Author: Jonas
@@ -200,6 +202,13 @@ def check_for_updates(show_popup=False):
 
             if show_popup:
                 mb.showinfo("Opdatering", f"Programmet er opdateret til {online}.")
+                # Tilbyd genstart
+                if mb.askyesno("Genstart", "Programmet er opdateret.\nVil du genstarte nu?"):
+                    python_exe = sys.executable
+                    script_path = os.path.join(get_src_root(), "main.py")
+                    subprocess.Popen([python_exe, script_path])
+                    os._exit(0)
+
         else:
             print("[FEJL] Opdateringen mislykkedes.")
             if show_popup:
