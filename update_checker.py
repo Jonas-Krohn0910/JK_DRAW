@@ -9,7 +9,7 @@ import tkinter.messagebox as mb
 # Author: Jonas
 # License: MIT
 
-UPDATE_URL_VERSION = "https://raw.githubusercontent.com/Jonas-Krohn0910/JK_DRAW/main/src/version.txt"
+UPDATE_URL_VERSION = "https://raw.githubusercontent.com/Jonas-Krohn0910/JK_DRAW/main/version.txt"
 UPDATE_URL_ZIP = "https://github.com/Jonas-Krohn0910/JK_DRAW/archive/refs/heads/main.zip"
 
 LOCAL_VERSION_FILE = "version.txt"

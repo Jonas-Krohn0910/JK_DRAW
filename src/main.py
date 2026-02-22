@@ -7,11 +7,18 @@ from funktionstegner import Funktionstegner
 import sys
 import os
 
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
-from updater_checker import check_for_updates
+# Find projektroden (mappen over src)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
+# Debug (kan slettes senere)
+print("Working directory:", os.getcwd())
+print("Project root:", project_root)
 
+# Tilføj projektroden som første entry i sys.path
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from update_checker import check_for_updates
 
 class MainApp:
     def __init__(self, root):
