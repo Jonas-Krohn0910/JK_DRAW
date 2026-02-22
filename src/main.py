@@ -52,7 +52,7 @@ class MainApp:
         # Footer (copyright)
         footer = tk.Label(
             root,
-            text="© 2026 Jonas Krohn Updated",
+            text="© 2026 Jonas Krohn monkey",
             font=("Arial", 8),
             fg="gray"
         )
@@ -70,4 +70,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = MainApp(root)
     root.mainloop()
+
 
