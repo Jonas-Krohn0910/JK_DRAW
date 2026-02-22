@@ -4,7 +4,7 @@ import io
 import os
 import shutil
 import tkinter.messagebox as mb
-import subprocess 
+import subprocess
 import sys
 
 # JK_DRAW - Engineering Visualization Tool
@@ -22,13 +22,57 @@ LOCAL_VERSION_FILE = "version.txt"
 # ---------------------------------------------------------
 
 def get_project_root():
-    """Returnerer projektroden (mappen hvor updater_checker.py ligger)."""
     return os.path.dirname(os.path.abspath(__file__))
 
 
 def get_src_root():
-    """Returnerer src-mappen inde i projektroden."""
     return os.path.join(get_project_root(), "src")
+
+
+# ---------------------------------------------------------
+# DEPENDENCY-HÅNDTERING
+# ---------------------------------------------------------
+
+def requirements_changed(old_path, new_path):
+    """Returnerer True hvis requirements.txt er ændret."""
+    if not os.path.exists(old_path) or not os.path.exists(new_path):
+        return True
+
+    try:
+        with open(old_path, "r", encoding="utf-8") as f1:
+            old = f1.read().strip()
+
+        with open(new_path, "r", encoding="utf-8") as f2:
+            new = f2.read().strip()
+
+        return old != new
+    except:
+        return True
+
+
+def install_requirements_if_needed():
+    """Installerer kun dependencies hvis requirements.txt er ændret."""
+    src_req = os.path.join(get_src_root(), "requirements.txt")
+    local_req = os.path.join(get_project_root(), "requirements.txt")
+
+    if not os.path.exists(src_req):
+        print("[INFO] Ingen requirements.txt i src/. Springer over.")
+        return
+
+    # Første gang
+    if not os.path.exists(local_req):
+        print("[INFO] Første installation af requirements.txt")
+        shutil.copy2(src_req, local_req)
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", local_req])
+        return
+
+    # Sammenlign
+    if requirements_changed(local_req, src_req):
+        print("[INFO] Nye dependencies fundet. Installerer...")
+        shutil.copy2(src_req, local_req)
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", local_req])
+    else:
+        print("[INFO] Dependencies er uændrede. Springer installation over.")
 
 
 # ---------------------------------------------------------
@@ -86,7 +130,7 @@ def update_available(local, online):
 
 
 # ---------------------------------------------------------
-# DOWNLOAD & UDPAKNING (KORREKT VERSION)
+# DOWNLOAD & UDPAKNING
 # ---------------------------------------------------------
 
 def download_and_extract_zip():
@@ -95,7 +139,6 @@ def download_and_extract_zip():
         r = requests.get(UPDATE_URL_ZIP, timeout=10)
         r.raise_for_status()
 
-        # Midlertidig mappe
         temp_dir = os.path.join(get_project_root(), "_update_temp")
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
@@ -105,13 +148,10 @@ def download_and_extract_zip():
         z = zipfile.ZipFile(io.BytesIO(r.content))
         z.extractall(temp_dir)
 
-        # GitHub laver altid én undermappe, fx JK_DRAW-main
         extracted_root = os.path.join(temp_dir, os.listdir(temp_dir)[0])
         print(f"[DEBUG] Filer fundet i: {extracted_root}")
 
         src_root = get_src_root()
-
-        # Kopiér ALLE filer fra extracted_root/src → src/
         new_src = os.path.join(extracted_root, "src")
 
         if not os.path.exists(new_src):
@@ -124,7 +164,6 @@ def download_and_extract_zip():
             s = os.path.join(new_src, item)
             d = os.path.join(src_root, item)
 
-            # Undgå at slette updater_checker.py
             if item == "updater_checker.py":
                 continue
 
@@ -137,7 +176,6 @@ def download_and_extract_zip():
 
         print("[DEBUG] src/ opdateret korrekt")
 
-        # Opdater filer i projektroden (fx version.txt)
         for item in os.listdir(extracted_root):
             if item == "src":
                 continue
@@ -154,7 +192,6 @@ def download_and_extract_zip():
 
         print("[DEBUG] Projektrod opdateret korrekt")
 
-        # Ryd op
         shutil.rmtree(temp_dir)
         print("[DEBUG] Midlertidige filer slettet")
 
@@ -200,9 +237,10 @@ def check_for_updates(show_popup=False):
             except Exception as e:
                 print(f"[FEJL] Kunne ikke skrive version.txt: {e}")
 
+            install_requirements_if_needed()
+
             if show_popup:
                 mb.showinfo("Opdatering", f"Programmet er opdateret til {online}.")
-                # Tilbyd genstart
                 if mb.askyesno("Genstart", "Programmet er opdateret.\nVil du genstarte nu?"):
                     python_exe = sys.executable
                     script_path = os.path.join(get_src_root(), "main.py")
