@@ -20,22 +20,6 @@ class Funktionstegner:
         # hver: {"expr": ..., "lambda": ..., "color": ..., "name": "f(x)", "pretty": "..."}
         self.functions = []
 
-        # ---------- Zoom UI-skalering ----------
-        zoom_frame = ttk.LabelFrame(self.frame, text="Zoom / UI-størrelse")
-        zoom_frame.pack(fill="x", padx=10, pady=5)
-
-        ttk.Label(zoom_frame, text="UI-størrelse:").pack(side="left", padx=5)
-        self.zoom_var = tk.StringVar(value="100%")
-        zoom_box = ttk.Combobox(
-            zoom_frame,
-            textvariable=self.zoom_var,
-            values=["80%", "100%", "120%", "150%", "180%"],
-            width=6,
-            state="readonly",
-        )
-        zoom_box.pack(side="left", padx=5)
-        zoom_box.bind("<<ComboboxSelected>>", self.change_ui_scale)
-
         # ---------- Funktion controller ----------
         ctrl = ttk.LabelFrame(self.frame, text="Funktionstyper")
         ctrl.pack(fill="x", padx=10, pady=10)

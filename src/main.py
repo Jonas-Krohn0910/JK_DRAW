@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+import tkinter.font as tkfont
 from vector_tab import VectorTab
 from help_tab import HelpTab
 from funktionsfit import Funktionsfit
@@ -47,10 +48,34 @@ class MainApp:
         self.root = root
         self.root.title("Vektorværktøj")
 
+        # Gem original font sizes (så zoom ikke stacker)
+        self.original_fonts = {}
+        for f in tkfont.names():
+            try:
+                font = tkfont.nametofont(f)
+                self.original_fonts[f] = font.cget("size")
+            except:
+                pass
+
         # Top-bar
         self.top_frame = ttk.Frame(root)
         self.top_frame.pack(fill="x")
 
+        # Zoom dropdown (GLOBAL)
+        ttk.Label(self.top_frame, text="UI-størrelse:").pack(side="left", padx=5)
+
+        self.zoom_var = tk.StringVar(value="100%")
+        zoom_box = ttk.Combobox(
+            self.top_frame,
+            textvariable=self.zoom_var,
+            values=["80%", "100%", "120%", "150%", "180%"],
+            width=6,
+            state="readonly",
+        )
+        zoom_box.pack(side="left", padx=5)
+        zoom_box.bind("<<ComboboxSelected>>", self.apply_global_zoom)
+
+        # Update button
         update_button = ttk.Button(
             self.top_frame,
             text="Søg efter opdateringer",
@@ -102,6 +127,33 @@ class MainApp:
         footer.pack(side="bottom", pady=3)
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    # ---------------------------------------------------------
+    # GLOBAL ZOOM FUNKTION (stabil, stacker ikke)
+    # ---------------------------------------------------------
+    def apply_global_zoom(self, event=None):
+        scale_str = self.zoom_var.get().replace("%", "")
+        scale = int(scale_str) / 100
+
+        # Skaler widgets
+        self.root.tk.call('tk', 'scaling', scale)
+
+        # Skaler fonts baseret på ORIGINAL størrelse
+        for name, original_size in self.original_fonts.items():
+            try:
+                font = tkfont.nametofont(name)
+                font.configure(size=int(original_size * scale))
+            except:
+                pass
+
+        # Fix Treeview row height
+        style = ttk.Style()
+        row_height = int(22 * scale)
+        style.configure("Treeview", rowheight=row_height)
+
+        # Fix Treeview heading font
+        heading_font = tkfont.nametofont("TkHeadingFont")
+        style.configure("Treeview.Heading", font=heading_font)
 
     def on_close(self):
         self.root.quit()

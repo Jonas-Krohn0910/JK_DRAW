@@ -100,14 +100,6 @@ class VectorTab:
         ttk.Checkbutton(file_frame, text="Vis navne", variable=self.show_names,
                         command=self.redraw_plot).grid(row=4, column=0, pady=5)
 
-        zoom_frame = ttk.LabelFrame(file_frame, text="Zoom")
-        zoom_frame.grid(row=5, column=0, pady=10)
-        self.ui_scale = 1.0
-        ttk.Button(zoom_frame, text="-", command=self.zoom_out).grid(row=0, column=0)
-        self.zoom_label = ttk.Label(zoom_frame, text="100%")
-        self.zoom_label.grid(row=0, column=1, padx=5)
-        ttk.Button(zoom_frame, text="+", command=self.zoom_in).grid(row=0, column=2)
-
         # ---------- Højre panel ----------
         list_frame = ttk.LabelFrame(self.frame, text="Punkter og vektorer")
         list_frame.grid(row=2, column=2, padx=10, pady=10, sticky="n")
@@ -1035,69 +1027,7 @@ class VectorTab:
         self.update_reference_selector()
         self.redraw_plot()
 
-    # ---------- Zoom ----------
-    def apply_zoom(self):
-        # Global scaling af hele Tkinter-GUI'en
-        root = self.frame.winfo_toplevel()
-        root.tk.call('tk', 'scaling', self.ui_scale)
 
-        # Opdater alle standard fonts
-        default_font = tk.font.nametofont("TkDefaultFont")
-        text_font = tk.font.nametofont("TkTextFont")
-        fixed_font = tk.font.nametofont("TkFixedFont")
-
-        default_font.configure(size=int(10 * self.ui_scale))
-        text_font.configure(size=int(10 * self.ui_scale))
-        fixed_font.configure(size=int(10 * self.ui_scale))
-        # Skaler Treeview-rækkehøjde 
-        style = ttk.Style() 
-        style.configure("Treeview", rowheight=int(20 * self.ui_scale))
-
-        # Opdater label
-        self.zoom_label.config(text=f"{int(self.ui_scale * 100)}%")
-
-        # Tving redraw af UI
-        self.frame.update_idletasks()
-
-        # ---------- NY DEL: Zoom på matplotlib-aksen ----------
-        scale = self.ui_scale
-
-        # Find center af nuværende view
-        x_center = (self.ax.get_xlim()[0] + self.ax.get_xlim()[1]) / 2
-        y_center = (self.ax.get_ylim()[0] + self.ax.get_ylim()[1]) / 2
-
-        # Standard-range (samme som din start)
-        base_x_range = 40
-        base_y_range = 20
-
-        # Beregn ny range baseret på zoom
-        new_x_range = base_x_range / scale
-        new_y_range = base_y_range / scale
-
-        # Sæt nye limits
-        self.ax.set_xlim(x_center - new_x_range/2, x_center + new_x_range/2)
-        self.ax.set_ylim(y_center - new_y_range/2, y_center + new_y_range/2)
-
-        # Redraw plot
-        self.canvas.draw()
-        # ---------- NY DEL: Skaler canvas-størrelsen ----------
-        new_width = int(800 * self.ui_scale)
-        new_height = int(400 * self.ui_scale)
-
-        self.canvas.get_tk_widget().config(width=new_width, height=new_height)
-        self.fig.set_size_inches(new_width / 100, new_height / 100)
-
-
-
-    def zoom_in(self):
-        if self.ui_scale < 2.0:
-            self.ui_scale += 0.1
-            self.apply_zoom()
-
-    def zoom_out(self):
-        if self.ui_scale > 0.7:
-            self.ui_scale -= 0.1
-            self.apply_zoom()
 
 
 
