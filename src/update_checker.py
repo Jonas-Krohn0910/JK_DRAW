@@ -4,12 +4,12 @@ import io
 import os
 import tkinter.messagebox as mb
 # JK_DRAW - Engineering Visualization Tool
-# Author: Jonas <efternavn hvis du vil>
+# Author: Jonas Krohn FMS
 # Created: 2024
 # License: MIT
 
-UPDATE_URL_VERSION = "http://www.wosylus.com/test/version%202.txt"
-UPDATE_URL_ZIP = "http://www.wosylus.com/test/JK_draw%202.zip"
+UPDATE_URL_VERSION = "https://raw.githubusercontent.com/Jonas-Krohn0910/JK_DRAW/main/src/version.txt"
+UPDATE_URL_ZIP = "https://github.com/Jonas-Krohn0910/JK_DRAW/archive/refs/heads/main.zip"
 
 LOCAL_VERSION_FILE = "version.txt"
 
@@ -156,3 +156,4 @@ def check_for_updates(show_popup=False):
 
 if __name__ == "__main__":
     check_for_updates(show_popup=False)
+
