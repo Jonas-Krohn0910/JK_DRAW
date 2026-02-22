@@ -597,37 +597,62 @@ class VectorTab:
         path = filedialog.asksaveasfilename(defaultextension=".txt")
         if not path:
             return
+
         with open(path, "w") as f:
+            # Gem punkter
             for p in self.points:
                 f.write(f"POINT {p[0]} {p[1]} {p[2]}\n")
+
+            # Gem vektorer (10 felter: sx sy ex ey color name dx dy style)
             for v in self.vectors:
                 f.write("VECTOR " + " ".join(map(str, v)) + "\n")
+
             # Reference-linjer gemmes ikke i denne version
+
 
     def load_project(self):
         path = filedialog.askopenfilename()
         if not path:
             return
 
+        # Ryd eksisterende data
         self.points = []
         self.vectors = []
         self.references = []
 
         with open(path, "r") as f:
             for line in f:
-                parts = line.split()
+                parts = line.strip().split()
+
+                # ---------- POINT ----------
                 if parts[0] == "POINT":
+                    # Format: POINT x y name
                     _, x, y, name = parts
                     self.points.append((float(x), float(y), name))
-                elif parts[0] == "VECTOR":
-                    _, sx, sy, ex, ey, color, name, dx, dy, style = parts
-                    self.vectors.append((float(sx), float(sy), float(ex), float(ey),
-                                         color, name, float(dx), float(dy), style))
 
+                # ---------- VECTOR ----------
+                elif parts[0] == "VECTOR":
+                    # Forventer præcis 10 felter
+                    if len(parts) != 10:
+                        print("Ugyldig VECTOR-linje:", parts)
+                        continue
+
+                    _, sx, sy, ex, ey, color, name, dx, dy, style = parts
+
+                    self.vectors.append((
+                        float(sx), float(sy),
+                        float(ex), float(ey),
+                        color, name,
+                        float(dx), float(dy),
+                        style
+                    ))
+
+        # Opdater UI efter load
         self.update_start_selector()
         self.update_reference_selector()
         self.update_tree()
         self.redraw_plot()
+
     # ---------- GUI opdateringer ----------
     def update_tree(self):
         self.tree.delete(*self.tree.get_children())
