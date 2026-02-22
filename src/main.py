@@ -52,7 +52,7 @@ class MainApp:
         # Footer (copyright)
         footer = tk.Label(
             root,
-            text="© 2026 Jonas Krohn monkey",
+            text="© 2026 Jonas Krohn",
             font=("Arial", 8),
             fg="gray"
         )
