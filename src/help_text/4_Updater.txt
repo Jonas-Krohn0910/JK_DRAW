@@ -1,0 +1,60 @@
+HJÆLP & FEJLFINDING
+--------------------------------------
+
+Generelt:
+- Hvis programmet ikke kan opdatere, skyldes det ofte manglende skriveadgang.
+- Programmet skal placeres i en mappe, hvor Windows tillader ændringer.
+- Undgå at køre programmet direkte fra C:\ eller andre systembeskyttede områder.
+- Antivirus kan blokere for download eller udpakning af opdateringer.
+- Sørg for at alle instanser af programmet er lukket før opdatering.
+
+Typiske problemer og løsninger:
+--------------------------------------
+
+1) Opdateringen fejler ved udpakning af ZIP-filen
+- Årsag: Programmet ligger i en mappe uden skriveadgang.
+- Løsning: Flyt hele program-mappen til fx:
+  * Skrivebordet
+  * Dokumenter
+  * Downloads
+  * En mappe du selv har oprettet
+- Undgå:
+  * C:\
+  * C:\Program Files\
+  * C:\Windows\
+  * Netværksdrev
+
+2) Antivirus blokerer opdateringen
+- Årsag: Nogle antivirusprogrammer stopper Python i at hente eller udpakke filer.
+- Løsning:
+  * Tillad programmet i antivirus
+  * Eller midlertidigt slå antivirus fra under opdatering
+
+3) Ingen internetforbindelse
+- Årsag: Programmet kan ikke hente version.txt eller ZIP-filen.
+- Løsning:
+  * Tjek internetforbindelsen
+  * Prøv igen senere
+  * Slå VPN fra hvis du bruger det
+
+4) Programmet er åbent i baggrunden
+- Årsag: Windows låser filer, så de ikke kan overskrives.
+- Løsning:
+  * Luk ALLE vinduer af programmet
+  * Tjek Joblisten for resterende processer
+
+5) ZIP-filen blev hentet korrupt
+- Årsag: Ustabil internetforbindelse eller afbrudt download.
+- Løsning:
+  * Prøv opdateringen igen
+
+6) Manglende mapper eller ændret struktur
+- Årsag: Brugeren har slettet eller flyttet filer i programmet.
+- Løsning:
+  * Download programmet igen fra GitHub
+  * Sørg for at mappestrukturen er intakt
+
+Kontakt:
+--------------------------------------
+Hvis du stadig oplever problemer, kan du kontakte udvikleren her:
+https://forms.gle/RWnbVHAzzJPuqC1RA
