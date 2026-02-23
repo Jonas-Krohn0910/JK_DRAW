@@ -5,6 +5,7 @@ from vector_tab import VectorTab
 from help_tab import HelpTab
 from funktionsfit import Funktionsfit
 from funktionstegner import Funktionstegner
+from ac_tab import ACTab
 import sys
 import os
 
@@ -110,6 +111,15 @@ class MainApp:
         self.funktion_tab = Funktionstegner(funktion_scroll.scrollable_frame)
         self.funktion_tab.frame.pack(fill="both", expand=True)
         self.notebook.add(funktion_scroll, text="Funktionstegner")
+
+        # -------------------------
+        # AC-kreds (scroll)
+        # -------------------------
+        ac_scroll = ScrollableFrame(self.notebook)
+        self.ac_tab = ACTab(ac_scroll.scrollable_frame)
+        self.ac_tab.frame.pack(fill="both", expand=True)
+        self.notebook.add(ac_scroll, text="AC-kreds")
+
 
         # -------------------------
         # Hjælp (har allerede scroll)
