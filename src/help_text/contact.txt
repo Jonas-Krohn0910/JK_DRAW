@@ -1,2 +1,7 @@
-Contact information here
+Author: Jonas Krohn
+Marine Engineer Student – FMS Esbjerg
+
+I specialize in technical problem‑solving and enjoy developing software solutions that support engineering processes. This project reflects my dedication to learning, improving, and applying programming in real‑world scenarios.
+
+For professional inquiries or contact, please use:
 https://forms.gle/RWnbVHAzzJPuqC1RA
