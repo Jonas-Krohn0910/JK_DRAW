@@ -6,6 +6,8 @@ from help_tab import HelpTab
 from funktionsfit import Funktionsfit
 from funktionstegner import Funktionstegner
 from ac_tab import ACTab
+from AC3_tab import AC3Tab 
+
 import sys
 import os
 
@@ -113,12 +115,21 @@ class MainApp:
         self.notebook.add(funktion_scroll, text="Funktionstegner")
 
         # -------------------------
-        # AC-kreds (scroll)
+        # 1-faset AC-kreds (scroll)
         # -------------------------
         ac_scroll = ScrollableFrame(self.notebook)
         self.ac_tab = ACTab(ac_scroll.scrollable_frame)
         self.ac_tab.frame.pack(fill="both", expand=True)
-        self.notebook.add(ac_scroll, text="AC-kreds")
+        self.notebook.add(ac_scroll, text="1-faset AC")
+
+        # -------------------------
+        # 3-faset AC-kreds (scroll)
+        # -------------------------
+        ac3_scroll = ScrollableFrame(self.notebook)
+        self.ac3_tab = AC3Tab(ac3_scroll.scrollable_frame)
+        self.ac3_tab.frame.pack(fill="both", expand=True)
+        self.notebook.add(ac3_scroll, text="3-faset AC")
+
 
 
         # -------------------------
