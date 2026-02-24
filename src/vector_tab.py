@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.patches import FancyArrowPatch, Arc
 # JK_DRAW - Engineering Visualization Tool
-# Author: Jonas <efternavn hvis du vil>
+# Author: Jonas Krohn
 # Created: 2024
 # License: MIT
 
@@ -20,10 +20,47 @@ def pol2cart_vertical(length, angle_deg):
     angle_rad = np.radians(angle_deg)
     return length * np.sin(angle_rad), length * np.cos(angle_rad)
 
+class OffsetDialog(tk.Toplevel):
+    def __init__(self, parent, sx, sy):
+        super().__init__(parent)
+        self.title("Offset vektor")
+        self.resizable(False, False)
+
+        self.result = None
+
+        tk.Label(self, text="Ny X1:").grid(row=0, column=0, padx=10, pady=5)
+        self.x_entry = tk.Entry(self)
+        self.x_entry.grid(row=0, column=1, padx=10, pady=5)
+        self.x_entry.insert(0, f"{sx}")
+
+        tk.Label(self, text="Ny Y1:").grid(row=1, column=0, padx=10, pady=5)
+        self.y_entry = tk.Entry(self)
+        self.y_entry.grid(row=1, column=1, padx=10, pady=5)
+        self.y_entry.insert(0, f"{sy}")
+
+        ok_btn = tk.Button(self, text="OK", command=self.on_ok)
+        ok_btn.grid(row=2, column=0, columnspan=2, pady=10)
+
+        self.x_entry.focus_set()
+        self.grab_set()
+        self.wait_window()
+
+    def on_ok(self):
+        try:
+            new_x = float(self.x_entry.get().replace(",", "."))
+            new_y = float(self.y_entry.get().replace(",", "."))
+            self.result = (new_x, new_y)
+        except ValueError:
+            self.result = None
+        self.destroy()
 
 class VectorTab:
     def __init__(self, parent):
         self.frame = ttk.Frame(parent)
+
+        # Gør layout fleksibelt
+        self.frame.rowconfigure(0, weight=1)
+        self.frame.columnconfigure(0, weight=1)
 
         # ---------- Plot ----------
         self.fig, self.ax = plt.subplots(figsize=(8, 4))
@@ -32,13 +69,36 @@ class VectorTab:
         self.ax.set_xlim(-10, 30)
         self.ax.set_ylim(-10, 10)
 
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
-        self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=3, padx=5, pady=5)
+        # Container til canvas + resize-handle
+        self.canvas_container = ttk.Frame(self.frame)
+        self.canvas_container.grid(row=0, column=0, columnspan=3, sticky="nsew")
 
+        # Gør containeren fleksibel
+        self.canvas_container.rowconfigure(0, weight=1)
+        self.canvas_container.columnconfigure(0, weight=1)
+
+        # Opret canvas
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.canvas_container)
+        self.canvas_widget = self.canvas.get_tk_widget()
+        self.canvas_widget.pack(side="left", fill="both", expand=True)
+
+        # --- Resize-handle SKAL komme EFTER canvas_widget ---
+        self.resize_handle = tk.Label(
+            self.canvas_container,
+            text="⧉",
+            cursor="bottom_right_corner"
+        )
+        self.resize_handle.place(relx=1.0, rely=1.0, anchor="se")
+
+        self.resize_handle.bind("<ButtonPress-1>", self.start_resize)
+        self.resize_handle.bind("<B1-Motion>", self.perform_resize)
+
+        # Toolbar
         self.toolbar_frame = ttk.Frame(self.frame)
         self.toolbar_frame.grid(row=1, column=0, columnspan=3, sticky="w")
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
         self.toolbar.update()
+
 
         # ---------- Venstre panel ----------
         settings_frame = ttk.LabelFrame(self.frame, text="Vektor indstillinger")
@@ -113,6 +173,13 @@ class VectorTab:
         columns = ("type", "name", "x1", "y1", "x2", "y2", "length", "angle", "color", "style")
         self.tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=18)
         self.tree.grid(row=0, column=0, padx=5, pady=5)
+        # Højrekliksmenu til vektorer
+        self.tree_menu = tk.Menu(self.tree, tearoff=0)
+        self.tree_menu.add_command(label="Offset…", command=self.offset_selected_vector)
+
+        # Bind højreklik
+        self.tree.bind("<Button-3>", self.on_tree_right_click)
+
 
         headers = ["Type", "Navn", "X1", "Y1", "X2", "Y2", "Længde", "Vinkel (°)", "Farve", "Linje"]
         for col, text in zip(columns, headers):
@@ -168,6 +235,86 @@ class VectorTab:
         self.tree.bind("<ButtonRelease-1>", self.on_tree_select)
         self.tree.bind("<Button-1>", self.tree_click_blocker, add="+")
         self.frame.bind("<Button-1>", self.on_global_click)
+    #----Resize----
+    def start_resize(self, event):
+        widget = self.canvas_widget
+        self.resize_start = (
+            event.x_root,
+            event.y_root,
+            widget.winfo_width(),
+            widget.winfo_height()
+        )
+    #---Ja Resize igen----
+    def perform_resize(self, event):
+        start_x, start_y, start_w, start_h = self.resize_start
+
+        dx = event.x_root - start_x
+        dy = event.y_root - start_y
+
+        new_w = max(300, start_w + dx)
+        new_h = max(200, start_h + dy)
+
+        # Resize Tkinter-widget
+        self.canvas_widget.config(width=new_w, height=new_h)
+
+        # Resize Matplotlib-figuren
+        dpi = self.fig.get_dpi()
+        self.fig.set_size_inches(new_w / dpi, new_h / dpi, forward=True)
+
+        self.canvas.draw_idle()
+
+
+    def on_tree_right_click(self, event):
+        row_id = self.tree.identify_row(event.y)
+        if not row_id:
+            return
+
+        # Marker det item der blev højreklikket
+        self.tree.selection_set(row_id)
+
+        # Vis menu
+        self.tree_menu.tk_popup(event.x_root, event.y_root)
+    def offset_selected_vector(self):
+        sel = self.tree.selection()
+        if not sel:
+            return
+
+        item = sel[0]
+        if item not in self.item_map:
+            return
+
+        kind, idx = self.item_map[item]
+        if kind != "vector":
+            return
+
+        sx, sy, ex, ey, color, name, dx, dy, style = self.vectors[idx]
+
+        # Åbn samlet dialog
+        dialog = OffsetDialog(self.frame, sx, sy)
+        if dialog.result is None:
+            return
+
+        new_x, new_y = dialog.result
+
+        # Beregn forskydning
+        delta_x = new_x - sx
+        delta_y = new_y - sy
+
+        # Opdater vektor
+        self.vectors[idx] = (
+            new_x,
+            new_y,
+            ex + delta_x,
+            ey + delta_y,
+            color,
+            name,
+            dx,
+            dy,
+            style
+        )
+
+        self.update_tree()
+        self.redraw_plot()
 
     # ---------- Punkt-oprettelse ----------
     def enable_point_creation(self):
@@ -1025,8 +1172,16 @@ class VectorTab:
             self.ax.add_patch(arrow)
 
             if self.show_names.get() and name:
-                txt = self.ax.text(ex + dx, ey + dy, self.format_label(name),
-                   fontsize=10, color=color, picker=True)
+                mx = (sx + ex) / 2
+                my = (sy + ey) / 2
+
+                txt = self.ax.text(
+                    mx + dx, my + dy,
+                    self.format_label(name),
+                    fontsize=10,
+                    color=color,
+                    picker=True
+                )
                 self.text_objects.append(txt)
 
         self.ax.set_xlim(xlim)

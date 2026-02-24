@@ -1,6 +1,6 @@
 import math
 import tkinter as tk
-from tkinter import simpledialog, messagebox
+from tkinter import simpledialog, messagebox, filedialog
 
 from ac_solver import ACSolver
 
@@ -903,6 +903,55 @@ class Editor:
         text.insert(tk.END, "\nTotal impedans og strøm:\n")
         text.insert(tk.END, f"  Z_total: {fmt_complex(z_total)} Ω\n")
         text.insert(tk.END, f"  I_total: {fmt_complex(i_total)} A\n")
+                # ---------------------------------------------------------
+        # EKSPORT-KNAP (placeret i popup-vinduet)
+        # ---------------------------------------------------------
+        def export_vectors():
+            # Vælg fil
+            path = filedialog.asksaveasfilename(
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt")]
+            )
+            if not path:
+                return
+
+            # Hjælpefunktion: konverter kompleks → (x,y)
+            def cart(z):
+                return z.real, z.imag
+
+            try:
+                with open(path, "w") as f:
+
+                    # Total strøm
+                    if i_total is not None:
+                        I_plot = -i_total *10
+                        x, y = cart(I_plot)
+                        f.write(f"VECTOR 0 0 {x:.6f} {y:.6f} green I_total 0.2 0.2 solid\n")
+
+                    # Spændingsvektorer
+                    for name, v in comp_voltages.items():
+                        x, y = cart(v)
+                        f.write(f"VECTOR 0 0 {x:.6f} {y:.6f} blue {name}_V 0.2 0.2 solid\n")
+
+                    # Strømvektor
+                    for name, i in comp_currents.items():
+                        # Vend AC-kildens strøm
+                        if name.startswith("AC_"):
+                            i = -i
+                        x, y = cart(i * 10)
+                        f.write(f"VECTOR 0 0 {x:.6f} {y:.6f} red {name}_I 0.2 0.2 solid\n")
+
+                messagebox.showinfo("Eksporteret", "Vektordiagram er eksporteret i VectorTab-format.")
+
+            except Exception as e:
+                messagebox.showerror("Fejl", f"Kunne ikke eksportere vektorer:\n{e}")
+
+        # Knap nederst i popup
+        btn_frame = tk.Frame(win)
+        btn_frame.pack(fill=tk.X, pady=5)
+
+        export_btn = tk.Button(btn_frame, text="Eksporter vektordiagram til VectorTab", command=export_vectors)
+        export_btn.pack(side=tk.RIGHT, padx=10)
 
 
 class ACTab:
