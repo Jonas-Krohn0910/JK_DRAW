@@ -924,7 +924,7 @@ class Editor:
 
                     # Total strøm
                     if i_total is not None:
-                        I_plot = -i_total *10
+                        I_plot = -i_total
                         x, y = cart(I_plot)
                         f.write(f"VECTOR 0 0 {x:.6f} {y:.6f} green I_total 0.2 0.2 solid\n")
 
@@ -938,7 +938,7 @@ class Editor:
                         # Vend AC-kildens strøm
                         if name.startswith("AC_"):
                             i = -i
-                        x, y = cart(i * 10)
+                        x, y = cart(i)
                         f.write(f"VECTOR 0 0 {x:.6f} {y:.6f} red {name}_I 0.2 0.2 solid\n")
 
                 messagebox.showinfo("Eksporteret", "Vektordiagram er eksporteret i VectorTab-format.")

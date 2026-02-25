@@ -53,6 +53,33 @@ class OffsetDialog(tk.Toplevel):
         except ValueError:
             self.result = None
         self.destroy()
+class ScaleDialog(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Skalér vektor")
+        self.resizable(False, False)
+
+        self.result = None
+
+        tk.Label(self, text="Skaleringsfaktor:").grid(row=0, column=0, padx=10, pady=5)
+        self.entry = tk.Entry(self)
+        self.entry.grid(row=0, column=1, padx=10, pady=5)
+        self.entry.insert(0, "1.0")
+
+        ok_btn = tk.Button(self, text="OK", command=self.on_ok)
+        ok_btn.grid(row=1, column=0, columnspan=2, pady=10)
+
+        self.entry.focus_set()
+        self.grab_set()
+        self.wait_window()
+
+    def on_ok(self):
+        try:
+            factor = float(self.entry.get().replace(",", "."))
+            self.result = factor
+        except ValueError:
+            self.result = None
+        self.destroy()
 
 class VectorTab:
     def __init__(self, parent):
@@ -176,6 +203,9 @@ class VectorTab:
         # Højrekliksmenu til vektorer
         self.tree_menu = tk.Menu(self.tree, tearoff=0)
         self.tree_menu.add_command(label="Offset…", command=self.offset_selected_vector)
+        self.tree_menu.add_command(label="Skalér…", command=self.scale_selected_vector)
+        self.tree_menu.add_command(label="Slet", command=self.remove_selected_item)
+
 
         # Bind højreklik
         self.tree.bind("<Button-3>", self.on_tree_right_click)
@@ -191,9 +221,6 @@ class VectorTab:
         # Knap-ramme under Treeview
         button_frame = ttk.Frame(list_frame)
         button_frame.grid(row=1, column=0, pady=10)
-
-        ttk.Button(button_frame, text="Fjern valgt",
-                command=self.remove_selected_item).grid(row=0, column=0, padx=5, pady=5)
 
         ttk.Button(button_frame, text="Vektorsum",
                 command=self.create_vector_sum).grid(row=0, column=1, padx=5, pady=5)
@@ -262,7 +289,49 @@ class VectorTab:
         self.fig.set_size_inches(new_w / dpi, new_h / dpi, forward=True)
 
         self.canvas.draw_idle()
+    #-------Skalering af vektorer---------
+    def scale_selected_vector(self):
+        sel = self.tree.selection()
+        if not sel:
+            return
 
+        item = sel[0]
+        if item not in self.item_map:
+            return
+
+        kind, idx = self.item_map[item]
+        if kind != "vector":
+            return
+
+        # Hent vektor
+        sx, sy, ex, ey, color, name, dx, dy, style = self.vectors[idx]
+
+        # Beregn nuværende længde
+        vx = ex - sx
+        vy = ey - sy
+
+        # Åbn dialog
+        dialog = ScaleDialog(self.frame)
+        if dialog.result is None:
+            return
+
+        factor = dialog.result
+
+        # Skalér vektorens retning
+        new_ex = sx + vx * factor
+        new_ey = sy + vy * factor
+
+        # Opdater vektor
+        self.vectors[idx] = (
+            sx, sy,
+            new_ex, new_ey,
+            color, name,
+            dx, dy,
+            style
+        )
+
+        self.update_tree()
+        self.redraw_plot()
 
     def on_tree_right_click(self, event):
         row_id = self.tree.identify_row(event.y)

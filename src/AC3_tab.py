@@ -618,14 +618,14 @@ class AC3Tab:
                     # 3) FASESTRØMME (I_L1, I_L2, I_L3, I_N)
                     # -------------------------------------------------
                     for ph, I in results["I"].items():
-                        x, y = cart(I * 2)  # 1 volt = 2 A
+                        x, y = cart(I)
                         f.write(f"VECTOR 0 0 {x:.6f} {y:.6f} red I_{ph} 0.2 0.2 solid\n")
 
                     # -------------------------------------------------
                     # 4) NEGATIVE STRØMME (-I_L1, -I_L2, -I_L3, -I_N)
                     # -------------------------------------------------
                     for ph, I in results["I"].items():
-                        x, y = cart(-I * 2)
+                        x, y = cart(-I)
                         f.write(f"VECTOR 0 0 {x:.6f} {y:.6f} orange I_{ph}_neg 0.2 0.2 solid\n")
 
                 messagebox.showinfo("Eksporteret", "Vektordiagram er eksporteret i VectorTab-format.")
