@@ -71,6 +71,11 @@ class ACSolver:
                 Cval = c["value"]
                 Y = 1j * omega * Cval
 
+            elif t == "Z":
+                Z = c["value"]
+                if Z == 0:
+                    continue
+                Y = 1.0 / Z
             else:
                 continue
 
@@ -159,13 +164,17 @@ class ACSolver:
                 Z = 1.0 / (1j * omega * Cval)
                 Icomp = (V1 - V2) / Z
 
+            elif t == "Z":
+                Z = c["value"]
+                Icomp = (V1 - V2) / Z
+
             elif t == "AC":
                 idx = None
                 for k, src in enumerate(self.voltage_sources):
                     if src["name"] == c["name"]:
                         idx = k
                         break
-                Icomp = J_sources[idx] if idx is not None else 0
+                Icomp = -J_sources[idx] if idx is not None else 0
 
             comp_currents[c["name"]] = Icomp
 

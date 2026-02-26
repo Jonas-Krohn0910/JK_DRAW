@@ -6,6 +6,49 @@ from ac_solver import ACSolver
 
 GRID = 20
 
+class ZDialog(simpledialog.Dialog):
+    def body(self, master):
+        tk.Label(master, text="Ohmsk modstand R (Ω):").grid(row=0, column=0, sticky="w")
+        tk.Label(master, text="Fasevinkel φ (grader):").grid(row=1, column=0, sticky="w")
+
+        self.entry_R = tk.Entry(master)
+        self.entry_phi = tk.Entry(master)
+
+        self.entry_R.grid(row=0, column=1)
+        self.entry_phi.grid(row=1, column=1)
+
+        return self.entry_R  # fokus på første felt
+
+    def apply(self):
+        try:
+            self.R = float(self.entry_R.get())
+            self.phi = float(self.entry_phi.get())
+        except:
+            self.R = None
+            self.phi = None
+
+class ACDialog(simpledialog.Dialog):
+    def body(self, master):
+        tk.Label(master, text="Spænding (V):").grid(row=0, column=0, sticky="w")
+        tk.Label(master, text="Frekvens (Hz):").grid(row=1, column=0, sticky="w")
+
+        self.entry_V = tk.Entry(master)
+        self.entry_f = tk.Entry(master)
+
+        self.entry_V.grid(row=0, column=1)
+        self.entry_f.grid(row=1, column=1)
+
+        return self.entry_V  # fokus
+
+    def apply(self):
+        try:
+            self.V = float(self.entry_V.get())
+            self.f = float(self.entry_f.get())
+        except:
+            self.V = None
+            self.f = None
+
+
 
 # ---------------------------------------------------------
 # PORT
@@ -232,11 +275,17 @@ class Component:
         elif ctype == "C":
             self.value_raw = 0.0
             self.value_si = 0.0
+        elif ctype == "Z":
+            self.R_raw = 0.0
+            self.phi_raw = 0.0 
+            self.value_si = 0+0j
         elif ctype == "AC":
             self.voltage_raw = 0.0
             self.frequency_raw = 0.0
             self.voltage_si = 0.0
             self.frequency_si = 0.0
+
+
 
         # -------------------------------------------------
         # Tegn komponent
@@ -291,6 +340,7 @@ class Component:
                 x2 + 10, y2 + 10,
                 outline=""
             )
+            self.items.append(self.id)
 
             w1 = canvas.create_line(x1, y1 + 20, x1 + 15, y1 + 20, width=3)
             p1 = canvas.create_line(x1 + 20, y1, x1 + 20, y2, width=3)
@@ -298,6 +348,13 @@ class Component:
             w2 = canvas.create_line(x1 + 45, y1 + 20, x1 + 60, y1 + 20, width=3)
 
             self.items.extend([self.id, w1, p1, p2, w2])
+        elif ctype == "Z":
+            self.id = canvas.create_rectangle(
+                self.x, self.y,
+                self.x + 60, self.y + 40,
+                fill="white"
+            )
+            self.items.append(self.id)
 
         elif ctype == "L":
             self.height = 40
@@ -391,6 +448,10 @@ class Component:
             return f"{self.value_raw:.2f}mH"
         if self.ctype == "C":
             return f"{self.value_raw:.2f}µF"
+        if self.ctype == "Z":
+            R = getattr(self, "R_raw", 0.0)
+            phi = getattr(self, "phi_raw", 0.0)
+            return f"{R:.2f}Ω / φ={phi:.1f}°"
         return ""
 
     # ---------------------------------------------------------
@@ -465,17 +526,16 @@ class Component:
             return
 
         if self.is_source:
-            v = simpledialog.askfloat("AC-kilde", "Spænding (V):", initialvalue=self.voltage_raw)
-            if v is None:
-                return
-            f = simpledialog.askfloat("AC-kilde", "Frekvens (Hz):", initialvalue=self.frequency_raw)
-            if f is None:
-                return
+            if self.is_source:
+                dlg = ACDialog(self.canvas.editor.root)
 
-            self.voltage_raw = v
-            self.frequency_raw = f
-            self.voltage_si = v
-            self.frequency_si = f
+                if dlg.V is None or dlg.f is None:
+                    return
+
+                self.voltage_raw = dlg.V
+                self.frequency_raw = dlg.f
+                self.voltage_si = dlg.V
+                self.frequency_si = dlg.f
 
         else:
             if self.ctype == "R":
@@ -498,7 +558,23 @@ class Component:
                     return
                 self.value_raw = v
                 self.value_si = v * 1e-6
+        
+            elif self.ctype == "Z":
+                dlg = ZDialog(self.canvas.editor.root)
 
+                if dlg.R is None or dlg.phi is None:
+                    return
+
+                self.R_raw = dlg.R        # dette er magnitude
+                self.phi_raw = dlg.phi
+
+                phi_rad = math.radians(self.phi_raw)
+
+                real = self.R_raw * math.cos(phi_rad)
+                imag = self.R_raw * math.sin(phi_rad)
+
+                self.value_si = complex(real, imag)
+                
         if hasattr(self, "value_text_id") and self.value_text_id:
             self.canvas.itemconfigure(self.value_text_id, text=self.get_value_label())
 
@@ -518,6 +594,7 @@ class Editor:
         self.btn_r = tk.Button(self.toolbar, text="R", command=lambda: self.set_mode("R"))
         self.btn_l = tk.Button(self.toolbar, text="L", command=lambda: self.set_mode("L"))
         self.btn_c = tk.Button(self.toolbar, text="C", command=lambda: self.set_mode("C"))
+        self.btn_z = tk.Button(self.toolbar, text="Z", command=lambda: self.set_mode("Z"))
         self.btn_ac = tk.Button(self.toolbar, text="AC", command=lambda: self.set_mode("AC"))
         self.btn_gnd = tk.Button(self.toolbar, text="GND", command=lambda: self.set_mode("GND"))
         self.btn_wire1 = tk.Button(self.toolbar, text="Wire 1-knæk", command=lambda: self.set_wire_style(1))
@@ -538,6 +615,7 @@ class Editor:
         self.btn_r.pack(side=tk.LEFT)
         self.btn_l.pack(side=tk.LEFT)
         self.btn_c.pack(side=tk.LEFT)
+        self.btn_z.pack(side=tk.LEFT)
         self.btn_ac.pack(side=tk.LEFT)
         self.btn_gnd.pack(side=tk.LEFT)
         self.btn_wire1.pack(side=tk.LEFT)
@@ -643,6 +721,9 @@ class Editor:
         if ctype == "C":
             self.c_count += 1
             return f"C_{self.c_count}"
+        if ctype == "Z":
+            self.z_count = getattr(self, "z_count", 0) + 1
+            return f"Z_{self.z_count}"
         if ctype == "AC":
             self.ac_count += 1
             return f"AC_{self.ac_count}"
@@ -678,7 +759,7 @@ class Editor:
             return
 
         # Component placement (ONE-SHOT)
-        if self.mode in ("R", "L", "C", "AC", "GND"):
+        if self.mode in ("R", "L", "C", "AC", "GND", "Z"):
             comp = Component(self.canvas, self, self.mode, event.x, event.y,
                              is_source=(self.mode == "AC"))
             self.components.append(comp)
@@ -801,7 +882,7 @@ class Editor:
             if c.ctype == "GND":
                 continue
 
-            if c.ctype in ("R", "L", "C"):
+            if c.ctype in ("R", "L", "C","Z"):
                 n1 = c.ports[0].node_id
                 n2 = c.ports[1].node_id
 
@@ -845,6 +926,14 @@ class Editor:
                 components_data.append({
                     "name": c.name,
                     "type": "C",
+                    "n1": n1,
+                    "n2": n2,
+                    "value": c.value_si
+                })
+            elif c.ctype == "Z":
+                components_data.append({
+                    "name": c.name,
+                    "type": "Z",
                     "n1": n1,
                     "n2": n2,
                     "value": c.value_si
@@ -924,7 +1013,7 @@ class Editor:
 
                     # Total strøm
                     if i_total is not None:
-                        I_plot = -i_total
+                        I_plot = i_total
                         x, y = cart(I_plot)
                         f.write(f"VECTOR 0 0 {x:.6f} {y:.6f} green I_total 0.2 0.2 solid\n")
 
@@ -935,9 +1024,6 @@ class Editor:
 
                     # Strømvektor
                     for name, i in comp_currents.items():
-                        # Vend AC-kildens strøm
-                        if name.startswith("AC_"):
-                            i = -i
                         x, y = cart(i)
                         f.write(f"VECTOR 0 0 {x:.6f} {y:.6f} red {name}_I 0.2 0.2 solid\n")
 
