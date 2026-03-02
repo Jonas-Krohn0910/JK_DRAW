@@ -174,7 +174,7 @@ class ACSolver:
                     if src["name"] == c["name"]:
                         idx = k
                         break
-                Icomp = -J_sources[idx] if idx is not None else 0
+                Icomp = J_sources[idx] if idx is not None else 0
 
             comp_currents[c["name"]] = Icomp
 
@@ -196,7 +196,10 @@ class ACSolver:
         if len(self.voltage_sources) == 1:
             src = self.voltage_sources[0]
             Vsrc = src["voltage"]
-            Itotal = comp_currents[src["name"]]
+
+            idx = 0  # kun én kilde
+            Itotal = J_sources[idx]   # brug MNA-strøm direkte
+
             if Itotal != 0:
                 Ztotal = Vsrc / Itotal
 

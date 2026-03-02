@@ -882,9 +882,17 @@ class Editor:
             if c.ctype == "GND":
                 continue
 
-            if c.ctype in ("R", "L", "C","Z"):
-                n1 = c.ports[0].node_id
-                n2 = c.ports[1].node_id
+            # Brug faste terminaler for R, L, C, Z
+            if c.ctype in ("R", "L", "C", "Z"):
+                p_left  = c.ports[0]   # venstre terminal
+                p_right = c.ports[1]   # højre terminal
+
+                n1 = p_left.node_id
+                n2 = p_right.node_id
+
+                if n1 is None or n2 is None:
+                    raise ValueError(f"Komponent {c.name} er ikke korrekt forbundet.")
+
 
             elif c.ctype == "AC":
                 n1 = c.ports[0].node_id
@@ -992,6 +1000,7 @@ class Editor:
         text.insert(tk.END, "\nTotal impedans og strøm:\n")
         text.insert(tk.END, f"  Z_total: {fmt_complex(z_total)} Ω\n")
         text.insert(tk.END, f"  I_total: {fmt_complex(i_total)} A\n")
+        text.insert(tk.END, "\nVinklerne kan være 180 grader forskudt:\n")
                 # ---------------------------------------------------------
         # EKSPORT-KNAP (placeret i popup-vinduet)
         # ---------------------------------------------------------
@@ -1013,7 +1022,7 @@ class Editor:
 
                     # Total strøm
                     if i_total is not None:
-                        I_plot = i_total
+                        I_plot = -i_total
                         x, y = cart(I_plot)
                         f.write(f"VECTOR 0 0 {x:.6f} {y:.6f} green I_total 0.2 0.2 solid\n")
 
@@ -1024,6 +1033,8 @@ class Editor:
 
                     # Strømvektor
                     for name, i in comp_currents.items():
+                        if name.startswith("AC_"):
+                            i = -i
                         x, y = cart(i)
                         f.write(f"VECTOR 0 0 {x:.6f} {y:.6f} red {name}_I 0.2 0.2 solid\n")
 

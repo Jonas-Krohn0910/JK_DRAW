@@ -36,6 +36,8 @@ class Funktionstegner:
         ttk.Button(ctrl, text="sin", command=lambda: self.open_param_popup("sin")).pack(side="left", padx=5)
         ttk.Button(ctrl, text="cos", command=lambda: self.open_param_popup("cos")).pack(side="left", padx=5)
 
+        ttk.Button(ctrl, text="Egen funktion", command=self.open_custom_function_popup).pack(side="left", padx=5)
+
         # ---------- Interval ----------
         interval_frame = ttk.LabelFrame(self.frame, text="Plot-interval")
         interval_frame.pack(fill="x", padx=10, pady=10)
@@ -283,6 +285,53 @@ class Funktionstegner:
         ttk.Button(popup, text="Tilføj funktion", command=on_ok).grid(
             row=row, column=0, columnspan=2, pady=10
         )
+    def open_custom_function_popup(self):
+        popup = tk.Toplevel(self.frame)
+        popup.title("Brugerdefineret funktion")
+        popup.transient(self.frame)
+        popup.grab_set()
+
+        ttk.Label(popup, text="Skriv funktion i x:").grid(row=0, column=0, padx=10, pady=(10, 0))
+
+        entry = ttk.Entry(popup, width=40)
+        entry.grid(row=0, column=1, padx=10, pady=(10, 0))
+
+        # --- Hjælpetekst ---
+        help_text_customs_customs = (
+            "Brug x som variabel.\n"
+            "Potenser: x**2, x**3\n"
+            "Trig: np.sin(x), np.cos(x)\n"
+            "Log: np.log(x)\n"
+            "Eksponentiel: np.exp(x)\n"
+            "Eksempel: 3*x**5 - 2*np.sin(x) + np.log(x)"
+        )
+
+        ttk.Label(popup, text=help_text_customs_customs, justify="left").grid(
+            row=1, column=0, columnspan=2, padx=10, pady=(5, 10)
+        )
+
+        def on_ok():
+            expr = entry.get().strip()
+            if not expr:
+                messagebox.showerror("Fejl", "Du skal skrive en funktion.")
+                return
+
+            try:
+                test_func = lambda x: eval(expr, {"__builtins__": {}}, {"x": x, "np": np})
+                test_func(1)
+            except Exception as e:
+                messagebox.showerror("Fejl i funktion", f"Kan ikke evaluere funktionen:\n{e}")
+                return
+
+            pretty = expr.replace("**", "^")
+
+            self.add_function_from_expr(expr, pretty)
+            popup.destroy()
+
+        ttk.Button(popup, text="Tilføj funktion", command=on_ok).grid(
+            row=2, column=0, columnspan=2, pady=10
+        )
+
 
     # ---------- Tilføj funktion fra expr ----------
     def add_function_from_expr(self, expr, pretty_core):
