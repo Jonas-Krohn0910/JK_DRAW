@@ -1,7 +1,7 @@
 class Netlist3Phase:
     def __init__(self):
         self.components = {}
-        self.counter = {"R": 1, "L": 1, "C": 1}
+        self.counter = {"R": 1, "L": 1, "C": 1, "Z":1}
 
     def add_component(self, ctype, n1, n2):
         name = f"{ctype}{self.counter[ctype]}"
@@ -11,8 +11,10 @@ class Netlist3Phase:
             "name": name,
             "type": ctype,
             "value": 1.0,
+            "angle": 0.0,
             "n1": n1,
             "n2": n2,
+        
             "canvas_ids": []
         }
         return name

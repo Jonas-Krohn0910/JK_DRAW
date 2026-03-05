@@ -39,6 +39,7 @@ def solve_3phase(netlist, phases):
             n1 = comp["n1"]
             n2 = comp["n2"]
             val = float(comp["value"])
+            angle_deg = float(comp.get("angle", 0.0))
 
             f = phases.get(n1, phases["L1"])["f"]
             w = 2 * math.pi * f
@@ -46,11 +47,18 @@ def solve_3phase(netlist, phases):
             if ctype == "R":
                 Z = val
             elif ctype == "L":
-                Z = 1j * w * val
+                # mH -> H
+                L_H = val / 1000.0
+                Z = 1j * w * L_H
             elif ctype == "C":
+                # µF -> F
                 if val == 0:
                     continue
-                Z = 1 / (1j * w * val)
+                C_F = val * 1e-6
+                Z = 1 / (1j * w * C_F)
+            elif ctype == "Z":
+                # Generel impedans: |Z| og fasevinkel (grader)
+                Z = cmath.rect(val, math.radians(angle_deg))
             else:
                 continue
 
@@ -87,6 +95,7 @@ def solve_3phase(netlist, phases):
             n1 = comp["n1"]
             n2 = comp["n2"]
             val = float(comp["value"])
+            angle_deg = float(comp.get("angle", 0.0))
 
             f = phases.get(n1, phases["L1"])["f"]
             w = 2 * math.pi * f
@@ -94,11 +103,15 @@ def solve_3phase(netlist, phases):
             if ctype == "R":
                 Z = val
             elif ctype == "L":
-                Z = 1j * w * val
+                L_H = val / 1000.0
+                Z = 1j * w * L_H
             elif ctype == "C":
                 if val == 0:
                     continue
-                Z = 1 / (1j * w * val)
+                C_F = val * 1e-6
+                Z = 1 / (1j * w * C_F)
+            elif ctype == "Z":
+                Z = cmath.rect(val, math.radians(angle_deg))
             else:
                 continue
 
@@ -149,6 +162,7 @@ def solve_3phase(netlist, phases):
             n1 = comp["n1"]
             n2 = comp["n2"]
             val = float(comp["value"])
+            angle_deg = float(comp.get("angle", 0.0))
 
             f = phases.get(n1, phases["L1"])["f"]
             w = 2 * math.pi * f
@@ -156,11 +170,15 @@ def solve_3phase(netlist, phases):
             if ctype == "R":
                 Z = val
             elif ctype == "L":
-                Z = 1j * w * val
+                L_H = val / 1000.0
+                Z = 1j * w * L_H
             elif ctype == "C":
                 if val == 0:
                     continue
-                Z = 1 / (1j * w * val)
+                C_F = val * 1e-6
+                Z = 1 / (1j * w * C_F)
+            elif ctype == "Z":
+                Z = cmath.rect(val, math.radians(angle_deg))
             else:
                 continue
 

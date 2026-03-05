@@ -201,7 +201,7 @@ class ACSolver:
             Itotal = J_sources[idx]   # brug MNA-strøm direkte
 
             if Itotal != 0:
-                Ztotal = Vsrc / Itotal
+                Ztotal = -Vsrc / Itotal
 
         return {
             "node_voltages": node_voltages,

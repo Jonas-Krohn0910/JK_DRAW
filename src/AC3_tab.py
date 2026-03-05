@@ -26,29 +26,66 @@ class AC3Tab:
         self.angle_var = {}
         self.freq_var = {}
 
-        # Canvas-område
-        self.canvas = tk.Canvas(self.frame, width=900, height=600, bg="white")
-        self.canvas.pack(fill="both", expand=True)
+        # ---------------------------------------------------------
+        # CANVAS + SCROLLBAR + RESIZE-HANDLE
+        # ---------------------------------------------------------
 
-        # Node rækkefølge
+        # Container til canvas + scrollbar + resize-handle
+        self.canvas_container = ttk.Frame(self.frame)
+        self.canvas_container.pack(fill="both", expand=True)
+
+        # Vandret scrollbar
+        self.h_scroll = ttk.Scrollbar(self.canvas_container, orient="horizontal")
+        self.h_scroll.pack(side="bottom", fill="x")
+
+        # Canvas
+        self.canvas = tk.Canvas(
+            self.canvas_container,
+            width=900,
+            height=600,
+            bg="white",
+            scrollregion=(0, 0, 3000, 2000)   # stort arbejdsområde
+        )
+        self.canvas.pack(side="left", fill="both", expand=True)
+
+        # Scrollbar binder til canvas
+        self.canvas.configure(xscrollcommand=self.h_scroll.set)
+        self.h_scroll.configure(command=self.canvas.xview)
+
+        # Resize-handle (⧉)
+        self.resize_handle = tk.Label(
+            self.canvas_container,
+            text="⧉",
+            cursor="bottom_right_corner"
+        )
+        self.resize_handle.place(relx=1.0, rely=1.0, anchor="se")
+
+        self.resize_handle.bind("<ButtonPress-1>", self.start_resize)
+        self.resize_handle.bind("<B1-Motion>", self.perform_resize)
+
+        # Panorering (midt-museknap)
+        self.canvas.bind("<ButtonPress-2>", self._start_pan)
+        self.canvas.bind("<B2-Motion>", self._do_pan)
+
+        # ---------------------------------------------------------
+        # NODER, SLOTS, UI-RÆKKER
+        # ---------------------------------------------------------
+
         self.nodes = ["L1", "L2", "L3", "N"]
-
-        # Y-positioner for linjerne
         self.node_y = {}
 
-        # Slotsystem
         self.slots = []
         self.slot_map = {}
         self.slot_clicks = []
 
-        # Byg UI-rækker
+        # Tegn fase-linjer og inputfelter
         self._build_phase_rows()
 
-        # Klik-registrering
+        # Klik-håndtering
         self.canvas.bind("<Button-1>", self.on_canvas_click)
         self.canvas.bind("<Button-3>", self.on_right_click)
 
-        # Reflow dashboard
+        # Dashboard reflow
         self.dashboard_inner.bind("<Configure>", self._on_dashboard_configure)
         self.dashboard_container.bind("<Configure>", lambda e: self._reflow_component_boxes())
 
@@ -62,7 +99,9 @@ class AC3Tab:
         ttk.Button(toolbar, text="Modstand", command=lambda: self.set_tool("R")).pack(side="left")
         ttk.Button(toolbar, text="Spole", command=lambda: self.set_tool("L")).pack(side="left")
         ttk.Button(toolbar, text="Kondensator", command=lambda: self.set_tool("C")).pack(side="left")
+        ttk.Button(toolbar, text="Impedans Z", command=lambda: self.set_tool("Z")).pack(side="left")
         ttk.Button(toolbar, text="Simulate", command=self.run_solver).pack(side="right")
+
 
     def set_tool(self, tool):
         if getattr(self, "inline_edit_active", False):
@@ -70,6 +109,43 @@ class AC3Tab:
         self.current_tool = tool
         self.slot_clicks = []
         self.show_slots()
+    def _zoom(self, event):
+        # Zoomfaktor
+        scale = 1.1 if event.delta > 0 else 0.9
+
+        # Zoom omkring musepositionen
+        self.canvas.scale("all", event.x, event.y, scale, scale)
+
+        # Opdater scrollregion så canvas følger med
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+    def start_resize(self, event):
+        widget = self.canvas
+        self.resize_start = (
+            event.x_root,
+            event.y_root,
+            widget.winfo_width(),
+            widget.winfo_height()
+        )
+
+    def perform_resize(self, event):
+        start_x, start_y, start_w, start_h = self.resize_start
+
+        dx = event.x_root - start_x
+        dy = event.y_root - start_y
+
+        new_w = max(600, start_w + dx)
+        new_h = max(400, start_h + dy)
+
+        # Resize canvas-widget
+        self.canvas.config(width=new_w, height=new_h)
+
+        # Opdater scrollregion så alt stadig kan ses
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+    def _start_pan(self, event):
+        self.canvas.scan_mark(event.x, event.y)
+
+    def _do_pan(self, event):
+        self.canvas.scan_dragto(event.x, event.y, gain=1)
 
     # ---------------------------------------------------------
     # Dashboard
@@ -127,8 +203,10 @@ class AC3Tab:
         return {
             "R": "Ω",
             "L": "mH",
-            "C": "µF"
+            "C": "µF",
+            "Z": "Ω",
         }.get(ctype, "")
+
 
     # ---------------------------------------------------------
     # Navne-validering
@@ -150,18 +228,26 @@ class AC3Tab:
         lbl_name.grid(row=0, column=0, sticky="w")
 
         value_str = str(comp.get("value", ""))
+        angle_str = f"{comp.get('angle', 0.0)}°"
+
         lbl_value = ttk.Label(frame, text=value_str, width=6, anchor="w")
         lbl_value.grid(row=0, column=1, sticky="w", padx=(4, 0))
 
+        lbl_angle = ttk.Label(frame, text=angle_str, width=6, anchor="w")
+        lbl_angle.grid(row=0, column=2, sticky="w", padx=(4, 0))
+
         lbl_unit = ttk.Label(frame, text=self._unit_for(comp["type"]), width=4, anchor="w")
-        lbl_unit.grid(row=0, column=2, sticky="w")
+        lbl_unit.grid(row=0, column=3, sticky="w")
 
         frame._name_label = lbl_name
         frame._value_label = lbl_value
+        frame._angle_label = lbl_angle
         frame._unit_label = lbl_unit
 
         lbl_name.bind("<Button-1>", lambda e, n=name: self._start_inline_edit(n, field="name"))
         lbl_value.bind("<Button-1>", lambda e, n=name: self._start_inline_edit(n, field="value"))
+        lbl_angle.bind("<Button-1>", lambda e, n=name: self._start_inline_edit(n, field="angle"))
+
 
         self.component_boxes[name] = frame
         self._reflow_component_boxes()
@@ -180,16 +266,34 @@ class AC3Tab:
         if field == "name":
             label = frame._name_label
             old_value = label.cget("text")
-        else:
+        elif field == "value":
             label = frame._value_label
             old_value = label.cget("text")
+        elif field == "angle":
+            # Hent komponenttype
+            ctype = self.netlist.components[name]["type"]
+
+            # Kun Z må få ændret vinkel
+            if ctype != "Z":
+                return  # Ignorer klik på vinkel for R, L og C
+
+            label = frame._angle_label
+            old_value = label.cget("text")
+        else:
+            return
 
         entry = ttk.Entry(frame, width=6)
         entry.insert(0, old_value)
         entry.select_range(0, "end")
         entry.focus_set()
 
-        col = 0 if field == "name" else 1
+        if field == "name":
+            col = 0
+        elif field == "value":
+            col = 1
+        elif field == "angle":
+            col = 2
+
         label.grid_forget()
         entry.grid(row=0, column=col, sticky="w")
 
@@ -235,7 +339,12 @@ class AC3Tab:
             else:
                 label.config(text=new_val)
                 if name in self.netlist.components:
-                    self.netlist.components[name]["value"] = new_val
+                    if field == "value":
+                        self.netlist.components[name]["value"] = float(new_val)
+                    elif field == "angle":
+                        clean = new_val.replace("°", "").strip()
+                        self.netlist.components[name]["angle"] = float(clean)
+                        label.config(text=f"{clean}°")
 
             self.inline_edit_active = False
 
@@ -274,7 +383,7 @@ class AC3Tab:
             y = start_y + i * y_offset
 
             self.canvas.create_text(40, y, text=node, anchor="w", font=("Arial", 12, "bold"))
-            self.canvas.create_line(100, y, 850, y, width=2)
+            self.canvas.create_line(100, y, 2200, y, width=2)
             self.node_y[node] = y
 
             if node != "N":
@@ -320,7 +429,7 @@ class AC3Tab:
 
         for node in self.nodes:
             y = self.node_y[node]
-            for i in range(10):
+            for i in range(34):
                 x = x_start + i * x_step
                 slot = self.canvas.create_oval(
                     x - 4, y - 4,
@@ -345,17 +454,22 @@ class AC3Tab:
         if not self.current_tool:
             return
 
-        slot = self._detect_slot(event.x, event.y)
+        # Konverter klik til canvas-koordinater
+        cx = self.canvas.canvasx(event.x)
+        cy = self.canvas.canvasy(event.y)
+
+        slot = self._detect_slot(cx, cy)
         if not slot:
             return
 
         self.slot_clicks.append(slot)
 
+
         if len(self.slot_clicks) == 2:
             (nodeA, xA, yA), (nodeB, xB, yB) = self.slot_clicks
             self.slot_clicks = []
 
-            if self.current_tool in ("R", "L", "C"):
+            if self.current_tool in ("R", "L", "C", "Z"):
                 self.place_simple_component(self.current_tool, nodeA, nodeB, xA, yA, xB, yB)
 
             for s in self.slots:
