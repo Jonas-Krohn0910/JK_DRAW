@@ -5,10 +5,142 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.patches import FancyArrowPatch, Arc
+from idlelib.tooltip import Hovertip
 
 GRID_STEP = 0.2
 POINT_SIZE = 10
 
+class AddReferencePopup(tk.Toplevel):
+    def __init__(self, parent, angle, length, name, start_mode, ref_mode, start_items, ref_items):
+        super().__init__(parent)
+        self.title("Tilføj reference-linje")
+        self.resizable(True, True)
+        self.result = None
+
+        # Vinkel
+        tk.Label(self, text="Vinkel (°):").grid(row=0, column=0, padx=10, pady=5)
+        self.angle_var = tk.DoubleVar(value=angle)
+        tk.Entry(self, textvariable=self.angle_var).grid(row=0, column=1)
+
+        # Længde
+        tk.Label(self, text="Længde:").grid(row=1, column=0, padx=10, pady=5)
+        self.length_var = tk.DoubleVar(value=length)
+        tk.Entry(self, textvariable=self.length_var).grid(row=1, column=1)
+
+        # Navn
+        tk.Label(self, text="Navn:").grid(row=2, column=0, padx=10, pady=5)
+        self.name_var = tk.StringVar(value=name)
+        tk.Entry(self, textvariable=self.name_var).grid(row=2, column=1)
+
+        # Startpunkt
+        tk.Label(self, text="Startpunkt:").grid(row=3, column=0, padx=10, pady=5)
+        self.start_var = tk.StringVar(value=start_mode)
+        ttk.Combobox(self, textvariable=self.start_var, values=start_items, state="readonly").grid(row=3, column=1)
+
+        # Reference-basis
+        tk.Label(self, text="Reference:").grid(row=4, column=0, padx=10, pady=5)
+        self.ref_var = tk.StringVar(value=ref_mode)
+        ttk.Combobox(self, textvariable=self.ref_var, values=ref_items, state="readonly").grid(row=4, column=1)
+
+        # Knapper nederst
+        button_frame = tk.Frame(self)
+        button_frame.grid(row=99, column=0, columnspan=2, pady=15, sticky="ew")
+
+        tk.Button(button_frame, text="OK", width=10, command=self.on_ok).pack(side="left", padx=10)
+        tk.Button(button_frame, text="Annuller", width=10, command=self.destroy).pack(side="right", padx=10)
+
+        self.grab_set()
+        self.wait_window()
+
+    def on_ok(self):
+        self.result = (
+            self.angle_var.get(),
+            self.length_var.get(),
+            self.name_var.get().strip(),
+            self.start_var.get(),
+            self.ref_var.get()
+        )
+        self.destroy()
+
+class AddVectorPopup(tk.Toplevel):
+    def __init__(self, parent, length, angle, color, style, name,
+             start_mode, ref_mode, start_items, ref_items):
+        super().__init__(parent)
+        self.resizable(True, True)
+        self.title("Tilføj vektor")
+        self.resizable(False, False)
+        self.result = None
+
+        # Længde
+        tk.Label(self, text="Længde:").grid(row=0, column=0, padx=10, pady=5)
+        self.length_var = tk.DoubleVar(value=length)
+        tk.Entry(self, textvariable=self.length_var).grid(row=0, column=1)
+
+        # Vinkel
+        tk.Label(self, text="Vinkel (°):").grid(row=1, column=0, padx=10, pady=5)
+        self.angle_var = tk.DoubleVar(value=angle)
+        tk.Entry(self, textvariable=self.angle_var).grid(row=1, column=1)
+
+        # Farve
+        tk.Label(self, text="Farve:").grid(row=2, column=0, padx=10, pady=5)
+        self.color_var = tk.StringVar(value=color)
+        ttk.Combobox(self, textvariable=self.color_var,
+                     values=["blue", "red", "green", "orange", "black"],
+                     state="readonly").grid(row=2, column=1)
+
+        # Linjetype
+        tk.Label(self, text="Linjetype:").grid(row=3, column=0, padx=10, pady=5)
+        self.style_var = tk.StringVar(value=style)
+        ttk.Combobox(self, textvariable=self.style_var,
+                     values=["solid", "dashed", "dotted", "dashdot"],
+                     state="readonly").grid(row=3, column=1)
+        # Startpunkt
+        tk.Label(self, text="Startpunkt:").grid(row=5, column=0, padx=10, pady=5)
+        self.start_var = tk.StringVar(value=start_mode)
+        ttk.Combobox(
+            self,
+            textvariable=self.start_var,
+            values=start_items,
+            state="readonly",
+            width=20
+        ).grid(row=5, column=1)
+        # Reference-linje
+        tk.Label(self, text="Reference:").grid(row=6, column=0, padx=10, pady=5)
+        self.ref_var = tk.StringVar(value=ref_mode)
+        ttk.Combobox(
+            self,
+            textvariable=self.ref_var,
+            values=ref_items,
+            state="readonly",
+            width=20
+        ).grid(row=6, column=1)
+
+        # Navn
+        tk.Label(self, text="Navn:").grid(row=4, column=0, padx=10, pady=5)
+        self.name_var = tk.StringVar(value=name)
+        tk.Entry(self, textvariable=self.name_var).grid(row=4, column=1)
+
+        # --- Knapper nederst ---
+        button_frame = tk.Frame(self)
+        button_frame.grid(row=99, column=0, columnspan=2, pady=15, sticky="ew")
+
+        tk.Button(button_frame, text="OK", width=10, command=self.on_ok).pack(side="left", padx=10)
+        tk.Button(button_frame, text="Annuller", width=10, command=self.destroy).pack(side="right", padx=10)
+
+        self.grab_set()
+        self.wait_window()
+
+    def on_ok(self):
+        self.result = (
+            self.length_var.get(),
+            self.angle_var.get(),
+            self.color_var.get(),
+            self.style_var.get(),
+            self.name_var.get().strip(),
+            self.start_var.get(),
+            self.ref_var.get()
+        )
+        self.destroy()
 
 def pol2cart_horizontal(length, angle_deg):
     angle_rad = np.radians(angle_deg)
@@ -264,6 +396,8 @@ class VectorTab:
         self.ax.grid(True)
         self.ax.set_xlim(-10, 30)
         self.ax.set_ylim(-10, 10)
+        #nyt
+        self.fig.subplots_adjust(left=0.02, right=0.98, top=0.90, bottom=0.10)
 
         self.canvas_container = ttk.Frame(self.frame)
         self.canvas_container.grid(row=0, column=0, columnspan=3, sticky="nsew")
@@ -284,83 +418,130 @@ class VectorTab:
 
         self.resize_handle.bind("<ButtonPress-1>", self.start_resize)
         self.resize_handle.bind("<B1-Motion>", self.perform_resize)
+        #Defination af checkboxes
+        self.show_points = tk.BooleanVar(value=True)
+        self.show_names = tk.BooleanVar(value=True)
+        self.show_grid = tk.BooleanVar(value=True)
 
-        self.toolbar_frame = ttk.Frame(self.frame)
-        self.toolbar_frame.grid(row=1, column=0, columnspan=3, sticky="w")
+        # Ydre frame til toolbar + checkboxes
+        self.toolbar_outer = ttk.Frame(self.frame)
+        self.toolbar_outer.grid(row=1, column=0, columnspan=3, sticky="w")
+
+        # Indre frame KUN til toolbaren
+        self.toolbar_frame = ttk.Frame(self.toolbar_outer)
+        self.toolbar_frame.pack(side="left")
+
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
         self.toolbar.update()
+        #Fjernelse af matplots naturlige funktion som viser koordinater
+        self.toolbar.set_message = lambda *args, **kwargs: None
+        # Indre frame KUN til fil-ikoner (skal pakkes FØRST)
+        # Stil til små toolbar-knapper med større emoji
+        style = ttk.Style()
+        style.configure(
+            "Toolbutton.TButton",
+            padding=0,
+            font=("Segoe UI Emoji", 16)   # større emoji
+        )
 
-        settings_frame = ttk.LabelFrame(self.frame, text="Vektor indstillinger")
+        self.filetools_frame = ttk.Frame(self.toolbar_outer)
+        self.filetools_frame.pack(side="right", padx=5)
+
+        btn_save = ttk.Button(
+            self.filetools_frame,
+            text="💾",
+            style="Toolbutton.TButton",
+            width=4,
+            command=self.save_project
+        )
+        btn_save.pack(side="left", padx=2)
+
+        btn_open = ttk.Button(
+            self.filetools_frame,
+            text="📂",
+            style="Toolbutton.TButton",
+            width=4,
+            command=self.load_project
+        )
+        btn_open.pack(side="left", padx=2)
+
+        btn_clear = ttk.Button(
+            self.filetools_frame,
+            text="🗑️",
+            style="Toolbutton.TButton",
+            width=4,
+            command=self.clear_plot
+        )
+        btn_clear.pack(side="left", padx=2)
+
+        Hovertip(btn_save, "Gem projekt")
+        Hovertip(btn_open, "Åbn projekt")
+        Hovertip(btn_clear, "Ryd alt")
+
+
+        # Indre frame KUN til checkboxes (skal pakkes SIDST)
+        self.checkbox_frame = ttk.Frame(self.toolbar_outer)
+        self.checkbox_frame.pack(side="right")
+
+        ttk.Checkbutton(self.checkbox_frame, text="Vis punkter",
+                        variable=self.show_points,
+                        command=self.redraw_plot).pack(side="left", padx=5)
+
+        ttk.Checkbutton(self.checkbox_frame, text="Vis navne",
+                        variable=self.show_names,
+                        command=self.redraw_plot).pack(side="left", padx=5)
+
+        ttk.Checkbutton(self.checkbox_frame, text="Vis grid",
+                        variable=self.show_grid,
+                        command=self.redraw_plot).pack(side="left", padx=5)
+
+
+        #VektorFrame
+        settings_frame = ttk.LabelFrame(self.frame, text="Create Elements")
         settings_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nw")
 
-        ttk.Label(settings_frame, text="Længde:").grid(row=0, column=0, sticky="e")
+        # Popup-knapper
+        button_frame = tk.Frame(settings_frame)
+        button_frame.grid(row=0, column=0, columnspan=2, sticky="ew")
+        button_frame.columnconfigure(0, weight=1)
+
+        ttk.Button(button_frame, text="Add vector", command=self.open_add_vector_popup).grid(row=0, column=0, pady=5, sticky="ew")
+        ttk.Button(button_frame, text="Add reference line", command=self.open_add_reference_popup).grid(row=1, column=0, pady=5, sticky="ew")
+        ttk.Button(button_frame, text="Add point", command=self.enable_point_creation).grid(row=2, column=0, pady=5, sticky="ew")
+
+
+        # Variabler (skal beholdes!)
         self.length_var = tk.DoubleVar(value=5.0)
-        ttk.Entry(settings_frame, textvariable=self.length_var, width=8).grid(row=0, column=1)
-
-        ttk.Label(settings_frame, text="Vinkel (°):").grid(row=1, column=0, sticky="e")
         self.angle_var = tk.DoubleVar(value=30.0)
-        ttk.Entry(settings_frame, textvariable=self.angle_var, width=8).grid(row=1, column=1)
-
-        ttk.Label(settings_frame, text="Farve:").grid(row=2, column=0, sticky="e")
         self.color_var = tk.StringVar(value="blue")
-        ttk.Combobox(settings_frame, textvariable=self.color_var,
-                     values=["blue", "red", "green", "orange", "black"],
-                     width=10, state="readonly").grid(row=2, column=1)
-
-        ttk.Label(settings_frame, text="Linjetype:").grid(row=3, column=0, sticky="e")
         self.style_var = tk.StringVar(value="solid")
-        ttk.Combobox(settings_frame, textvariable=self.style_var,
-                     values=["solid", "dashed", "dotted", "dashdot"],
-                     width=12, state="readonly").grid(row=3, column=1)
-
-        ttk.Label(settings_frame, text="Reference:").grid(row=4, column=0, sticky="e")
         self.ref_var = tk.StringVar(value="Standard")
-        self.ref_selector = ttk.Combobox(settings_frame, textvariable=self.ref_var,
-                                         values=["Standard"],
-                                         width=22, state="readonly")
-        self.ref_selector.grid(row=4, column=1)
-
-        ttk.Label(settings_frame, text="Startpunkt:").grid(row=5, column=0, sticky="e")
         self.start_mode = tk.StringVar(value="origin")
-        self.start_selector = ttk.Combobox(settings_frame, textvariable=self.start_mode,
-                                           values=["origin"], width=22, state="readonly")
-        self.start_selector.grid(row=5, column=1)
-
-        ttk.Label(settings_frame, text="Navn:").grid(row=6, column=0, sticky="e")
         self.name_var = tk.StringVar(value="")
-        ttk.Entry(settings_frame, textvariable=self.name_var, width=12).grid(row=6, column=1)
 
-        ttk.Button(settings_frame, text="Tilføj vektor", command=self.add_vector).grid(row=7, column=0, columnspan=2, pady=5)
-        ttk.Button(settings_frame, text="Opret punkt", command=self.enable_point_creation).grid(row=8, column=0, columnspan=2, pady=5)
-        ttk.Button(settings_frame, text="Opret reference-linje", command=self.create_reference_line).grid(row=9, column=0, columnspan=2, pady=5)
+        # Skjulte selectors (bruges af logikken, men vises ikke)
+        self.ref_selector = ttk.Combobox(settings_frame, textvariable=self.ref_var,
+                                        values=["Standard"], width=22, state="readonly")
 
-        file_frame = ttk.LabelFrame(self.frame, text="Fil")
-        file_frame.grid(row=2, column=1, padx=10, pady=10, sticky="nw")
+        self.start_selector = ttk.Combobox(settings_frame, textvariable=self.start_mode,
+                                        values=["origin"], width=22, state="readonly")
 
-        ttk.Button(file_frame, text="Gem projekt", command=self.save_project).grid(row=0, column=0, pady=5)
-        ttk.Button(file_frame, text="Åbn projekt", command=self.load_project).grid(row=1, column=0, pady=5)
-        ttk.Button(file_frame, text="Ryd alt", command=self.clear_plot).grid(row=2, column=0, pady=5)
-
-        self.show_points = tk.BooleanVar(value=True)
-        ttk.Checkbutton(file_frame, text="Vis punkter", variable=self.show_points,
-                        command=self.redraw_plot).grid(row=3, column=0, pady=5)
-
-        self.show_names = tk.BooleanVar(value=True)
-        ttk.Checkbutton(file_frame, text="Vis navne", variable=self.show_names,
-                        command=self.redraw_plot).grid(row=4, column=0, pady=5)
-
-        self.show_grid = tk.BooleanVar(value=True)
-        ttk.Checkbutton(file_frame, text="Vis grid", variable=self.show_grid,
-                        command=self.redraw_plot).grid(row=5, column=0, pady=5)
-
-        list_frame = ttk.LabelFrame(self.frame, text="Punkter og vektorer")
+        list_frame = ttk.LabelFrame(self.frame, text="Treeview")
         list_frame.grid(row=2, column=2, padx=10, pady=10, sticky="n")
         list_frame.columnconfigure(0, weight=0)
         list_frame.columnconfigure(1, weight=0)
 
+        # SCROLLBAR
+        scrollbar = ttk.Scrollbar(list_frame, orient="vertical")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+
         columns = ("type", "name", "x1", "y1", "x2", "y2", "length", "angle", "color", "style")
-        self.tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=18)
+        self.tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=18,
+                                yscrollcommand=scrollbar.set)
         self.tree.grid(row=0, column=0, padx=5, pady=5)
+
+        # Kobl scrollbar til treeview
+        scrollbar.config(command=self.tree.yview)
 
         self.tree_menu = tk.Menu(self.tree, tearoff=0)
         self.tree_menu.add_command(label="Offset…", command=self.offset_selected_vector)
@@ -380,11 +561,13 @@ class VectorTab:
         button_frame = ttk.Frame(list_frame)
         button_frame.grid(row=1, column=0, pady=10)
 
-        ttk.Button(
-            button_frame,
-            text="Vektoroperationer…",
-            command=self.open_vector_operations_dialog
-        ).grid(row=0, column=0, padx=5, pady=5)
+        #test ordning for at fjerne alle de knapper
+        #ttk.Button(
+        #    button_frame,
+        #    text="Vektoroperationer…",
+        #    command=self.open_vector_operations_dialog
+        #).grid(row=0, column=0, padx=5, pady=5)
+
 
         self.vectors = []
         self.points = []
@@ -426,6 +609,36 @@ class VectorTab:
             self.operation_images["Vinkel mellem"] = tk.PhotoImage(file=os.path.join(picture_dir, "angle.png"))
         except Exception:
             self.operation_images["Vinkel mellem"] = None
+    def open_add_vector_popup(self):
+        dialog = AddVectorPopup(
+            self.frame,
+            self.length_var.get(),
+            self.angle_var.get(),
+            self.color_var.get(),
+            self.style_var.get(),
+            self.name_var.get(),
+            self.start_mode.get(),
+            self.ref_var.get(),
+            self.start_selector["values"],
+            self.ref_selector["values"]
+        )
+
+
+        if dialog.result is None:
+            return
+
+        length, angle, color, style, name, start_mode, ref_mode = dialog.result
+
+        self.length_var.set(length)
+        self.angle_var.set(angle)
+        self.color_var.set(color)
+        self.style_var.set(style)
+        self.name_var.set(name)
+        self.start_mode.set(start_mode)
+        self.ref_var.set(ref_mode)
+
+        self.add_vector()
+
     #----Resize----
     def start_resize(self, event):
         widget = self.canvas_widget
@@ -661,6 +874,45 @@ class VectorTab:
         self.update_tree()
         self.update_start_selector()
         self.redraw_plot()
+    def add_vector_from_popup(self, length, angle, color, style, name, start_mode, ref_mode):
+        # Sæt værdierne i UI-variablerne
+        self.length_var.set(length)
+        self.angle_var.set(angle)
+        self.color_var.set(color)
+        self.style_var.set(style)
+        self.name_var.set(name)
+        self.start_mode.set(start_mode)
+        self.ref_var.set(ref_mode)
+
+        # Kald den eksisterende funktion
+        self.add_vector()
+    def open_add_reference_popup(self):
+        dialog = AddReferencePopup(
+            self.frame,
+            self.angle_var.get(),
+            self.length_var.get(),
+            self.name_var.get(),
+            self.start_mode.get(),
+            self.ref_var.get(),
+            self.start_selector["values"],
+            self.ref_selector["values"]
+        )
+
+        if dialog.result is None:
+            return
+
+        angle, length, name, start_mode, ref_mode = dialog.result
+
+        # Opdater UI-variablerne
+        self.angle_var.set(angle)
+        self.length_var.set(length)
+        self.name_var.set(name)
+        self.start_mode.set(start_mode)
+        self.ref_var.set(ref_mode)
+
+        # Brug din eksisterende funktion
+        self.create_reference_line()
+
     # ---------- Fjern punkt/vektor/reference ----------
     def remove_selected_item(self):
         sel = self.tree.selection()
