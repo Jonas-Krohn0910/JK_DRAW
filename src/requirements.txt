@@ -6,3 +6,5 @@ openpyxl
 xlrd
 requests
 colorama
+pymupdf
+pillow

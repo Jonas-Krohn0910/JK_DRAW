@@ -7,6 +7,7 @@ from funktionsfit import Funktionsfit
 from funktionstegner import Funktionstegner
 from ac_tab import ACTab
 from AC3_tab import AC3Tab 
+from noter_tab import NoterTab   # øverst med de andre imports
 
 import sys
 import os
@@ -129,6 +130,12 @@ class MainApp:
         self.ac3_tab = AC3Tab(ac3_scroll.scrollable_frame)
         self.ac3_tab.frame.pack(fill="both", expand=True)
         self.notebook.add(ac3_scroll, text="3-faset AC")
+
+        # Note fane
+        noter_scroll = ScrollableFrame(self.notebook)
+        self.noter_tab = NoterTab(noter_scroll.scrollable_frame)
+        self.noter_tab.frame.pack(fill="both", expand=True)
+        self.notebook.add(noter_scroll, text="Noter")
 
 
 
