@@ -143,13 +143,17 @@ class Funktionsfit:
         if x is None:
             return
 
-        x2 = x.reshape(-1, 1)
-        model = LinearRegression()
-        model.fit(x2, y)
+        try:
+            x2 = x.reshape(-1, 1)
+            model = LinearRegression()
+            model.fit(x2, y)
 
-        a = model.coef_[0]
-        b = model.intercept_
-        r2 = model.score(x2, y)
+            a = model.coef_[0]
+            b = model.intercept_
+            r2 = model.score(x2, y)
+        except Exception as e:
+            self.result_label.config(text=f"Fejl i beregning: {e}")
+            return
 
         # Plot
         self.ax.clear()
@@ -170,21 +174,26 @@ class Funktionsfit:
             return
 
         degree = int(self.poly_degree.get())
-        x2 = x.reshape(-1, 1)
 
-        poly = PolynomialFeatures(degree=degree)
-        x_poly = poly.fit_transform(x2)
+        try:
+            x2 = x.reshape(-1, 1)
 
-        model = LinearRegression()
-        model.fit(x_poly, y)
+            poly = PolynomialFeatures(degree=degree)
+            x_poly = poly.fit_transform(x2)
 
-        r2 = model.score(x_poly, y)
-        coeffs = model.coef_
-        intercept = model.intercept_
+            model = LinearRegression()
+            model.fit(x_poly, y)
 
-        # Plot
-        x_sorted = np.sort(x)
-        y_pred = model.predict(poly.transform(x_sorted.reshape(-1, 1)))
+            r2 = model.score(x_poly, y)
+            coeffs = model.coef_
+            intercept = model.intercept_
+
+            # Plot
+            x_sorted = np.sort(x)
+            y_pred = model.predict(poly.transform(x_sorted.reshape(-1, 1)))
+        except Exception as e:
+            self.result_label.config(text=f"Fejl i beregning: {e}")
+            return
 
         self.ax.clear()
         self.ax.scatter(x, y, label="Data")
@@ -211,19 +220,23 @@ class Funktionsfit:
             self.result_label.config(text="Eksponentiel regression kræver y > 0")
             return
 
-        x2 = x.reshape(-1, 1)
-        log_y = np.log(y)
+        try:
+            x2 = x.reshape(-1, 1)
+            log_y = np.log(y)
 
-        model = LinearRegression()
-        model.fit(x2, log_y)
+            model = LinearRegression()
+            model.fit(x2, log_y)
 
-        b = model.coef_[0]
-        ln_a = model.intercept_
-        a = np.exp(ln_a)
-        r2 = model.score(x2, log_y)
+            b = model.coef_[0]
+            ln_a = model.intercept_
+            a = np.exp(ln_a)
+            r2 = model.score(x2, log_y)
 
-        x_sorted = np.sort(x)
-        y_pred = a * np.exp(b * x_sorted)
+            x_sorted = np.sort(x)
+            y_pred = a * np.exp(b * x_sorted)
+        except Exception as e:
+            self.result_label.config(text=f"Fejl i beregning: {e}")
+            return
 
         self.ax.clear()
         self.ax.scatter(x, y, label="Data")
@@ -244,17 +257,21 @@ class Funktionsfit:
             self.result_label.config(text="Logaritmisk regression kræver x > 0")
             return
 
-        log_x = np.log(x).reshape(-1, 1)
+        try:
+            log_x = np.log(x).reshape(-1, 1)
 
-        model = LinearRegression()
-        model.fit(log_x, y)
+            model = LinearRegression()
+            model.fit(log_x, y)
 
-        a = model.coef_[0]
-        b = model.intercept_
-        r2 = model.score(log_x, y)
+            a = model.coef_[0]
+            b = model.intercept_
+            r2 = model.score(log_x, y)
 
-        x_sorted = np.sort(x)
-        y_pred = a * np.log(x_sorted) + b
+            x_sorted = np.sort(x)
+            y_pred = a * np.log(x_sorted) + b
+        except Exception as e:
+            self.result_label.config(text=f"Fejl i beregning: {e}")
+            return
 
         self.ax.clear()
         self.ax.scatter(x, y, label="Data")
@@ -275,19 +292,23 @@ class Funktionsfit:
             self.result_label.config(text="Potensfunktion kræver x > 0 og y > 0")
             return
 
-        log_x = np.log(x).reshape(-1, 1)
-        log_y = np.log(y)
+        try:
+            log_x = np.log(x).reshape(-1, 1)
+            log_y = np.log(y)
 
-        model = LinearRegression()
-        model.fit(log_x, log_y)
+            model = LinearRegression()
+            model.fit(log_x, log_y)
 
-        b = model.coef_[0]
-        ln_a = model.intercept_
-        a = np.exp(ln_a)
-        r2 = model.score(log_x, log_y)
+            b = model.coef_[0]
+            ln_a = model.intercept_
+            a = np.exp(ln_a)
+            r2 = model.score(log_x, log_y)
 
-        x_sorted = np.sort(x)
-        y_pred = a * x_sorted**b
+            x_sorted = np.sort(x)
+            y_pred = a * x_sorted**b
+        except Exception as e:
+            self.result_label.config(text=f"Fejl i beregning: {e}")
+            return
 
         self.ax.clear()
         self.ax.scatter(x, y, label="Data")

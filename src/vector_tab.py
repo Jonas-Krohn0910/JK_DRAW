@@ -1202,49 +1202,93 @@ class VectorTab:
         self.redraw_plot()
 
     # ---------- Save/Load ----------
+    def _encode_name(self, name):
+        # Tomt navn ville give et "tomt felt" der forsvinder ved split() igen
+        return name if name.strip() else "_"
+
+    def _decode_name(self, token):
+        return "" if token == "_" else token
+
     def save_project(self):
         path = filedialog.asksaveasfilename(defaultextension=".txt")
         if not path:
             return
 
         with open(path, "w") as f:
-            for p in self.points:
-                f.write(f"POINT {p[0]} {p[1]} {p[2]}\n")
+            for x, y, name in self.points:
+                f.write(f"POINT {x} {y} {self._encode_name(name)}\n")
 
-            for v in self.vectors:
-                f.write("VECTOR " + " ".join(map(str, v)) + "\n")
+            for sx, sy, ex, ey, color, name, dx, dy, style in self.vectors:
+                f.write(
+                    f"VECTOR {sx} {sy} {ex} {ey} {color} "
+                    f"{self._encode_name(name)} {dx} {dy} {style}\n"
+                )
+
+            for sx, sy, ex, ey, angle, name in self.references:
+                f.write(
+                    f"REFERENCE {sx} {sy} {ex} {ey} {angle} "
+                    f"{self._encode_name(name)}\n"
+                )
+
+            for cx, cy, r, color, name in self.circles:
+                f.write(
+                    f"CIRCLE {cx} {cy} {r} {color} {self._encode_name(name)}\n"
+                )
 
     def load_project(self):
         path = filedialog.askopenfilename()
         if not path:
             return
 
-        self.points = []
-        self.vectors = []
-        self.references = []
+        points, vectors, references, circles = [], [], [], []
 
         with open(path, "r") as f:
             for line in f:
                 parts = line.strip().split()
+                if not parts:
+                    continue
 
-                if parts[0] == "POINT":
-                    _, x, y, name = parts
-                    self.points.append((float(x), float(y), name))
+                try:
+                    if parts[0] == "POINT" and len(parts) == 4:
+                        _, x, y, name = parts
+                        points.append((float(x), float(y), self._decode_name(name)))
 
-                elif parts[0] == "VECTOR":
-                    if len(parts) != 10:
-                        print("Ugyldig VECTOR-linje:", parts)
-                        continue
+                    elif parts[0] == "VECTOR" and len(parts) == 10:
+                        _, sx, sy, ex, ey, color, name, dx, dy, style = parts
+                        vectors.append((
+                            float(sx), float(sy),
+                            float(ex), float(ey),
+                            color, self._decode_name(name),
+                            float(dx), float(dy),
+                            style
+                        ))
 
-                    _, sx, sy, ex, ey, color, name, dx, dy, style = parts
+                    elif parts[0] == "REFERENCE" and len(parts) == 7:
+                        _, sx, sy, ex, ey, angle, name = parts
+                        references.append((
+                            float(sx), float(sy),
+                            float(ex), float(ey),
+                            float(angle), self._decode_name(name)
+                        ))
 
-                    self.vectors.append((
-                        float(sx), float(sy),
-                        float(ex), float(ey),
-                        color, name,
-                        float(dx), float(dy),
-                        style
-                    ))
+                    elif parts[0] == "CIRCLE" and len(parts) == 6:
+                        _, cx, cy, r, color, name = parts
+                        circles.append((
+                            float(cx), float(cy),
+                            float(r), color, self._decode_name(name)
+                        ))
+
+                    else:
+                        print("Ugyldig linje i projektfil:", parts)
+
+                except ValueError:
+                    print("Kunne ikke læse linje i projektfil:", parts)
+
+        self.points = points
+        self.vectors = vectors
+        self.references = references
+        self.angles = []
+        self.circles = circles
 
         self.update_start_selector()
         self.update_reference_selector()
@@ -1327,7 +1371,7 @@ class VectorTab:
         self.start_selector["values"] = items
 
         current = self.start_mode.get()
-        if not any(current.startswith(x.split()[0]) for x in items):
+        if current not in items:
             self.start_mode.set("origin")
 
     def update_reference_selector(self):

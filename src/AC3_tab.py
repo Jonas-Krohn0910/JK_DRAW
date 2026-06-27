@@ -317,6 +317,15 @@ class AC3Tab:
                     self.inline_edit_active = False
                     return
 
+                if new_name == old_name:
+                    self.inline_edit_active = False
+                    return
+
+                if new_name in self.netlist.components:
+                    # Navnet er allerede i brug af en anden komponent
+                    self.inline_edit_active = False
+                    return
+
                 # Opdater netlist
                 self.netlist.rename_component(old_name, new_name)
 
@@ -336,15 +345,28 @@ class AC3Tab:
 
                 # Reflow dashboard
                 self._reflow_component_boxes()
-            else:
+            elif field == "value":
+                try:
+                    new_value = float(new_val)
+                except ValueError:
+                    self.inline_edit_active = False
+                    return
+
                 label.config(text=new_val)
                 if name in self.netlist.components:
-                    if field == "value":
-                        self.netlist.components[name]["value"] = float(new_val)
-                    elif field == "angle":
-                        clean = new_val.replace("°", "").strip()
-                        self.netlist.components[name]["angle"] = float(clean)
-                        label.config(text=f"{clean}°")
+                    self.netlist.components[name]["value"] = new_value
+
+            elif field == "angle":
+                clean = new_val.replace("°", "").strip()
+                try:
+                    new_angle = float(clean)
+                except ValueError:
+                    self.inline_edit_active = False
+                    return
+
+                if name in self.netlist.components:
+                    self.netlist.components[name]["angle"] = new_angle
+                label.config(text=f"{clean}°")
 
             self.inline_edit_active = False
 
@@ -672,7 +694,11 @@ class AC3Tab:
         phases["N"] = {"V": 0+0j, "f": phases["L1"]["f"]}
 
         # 2) Kald solver
-        results = solve_3phase(self.netlist, phases)
+        try:
+            results = solve_3phase(self.netlist, phases)
+        except Exception as e:
+            messagebox.showerror("Fejl i solver", f"Der opstod en fejl i 3-faset beregningen:\n{e}")
+            return
 
         # 3) Tilføj spændinger til popup (til linjespændinger)
         results["V"] = {

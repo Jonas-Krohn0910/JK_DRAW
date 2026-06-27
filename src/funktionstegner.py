@@ -411,8 +411,12 @@ class Funktionstegner:
         if len(self.functions) < 2:
             return
 
-        xmin = float(self.xmin_entry.get())
-        xmax = float(self.xmax_entry.get())
+        try:
+            xmin = float(self.xmin_entry.get())
+            xmax = float(self.xmax_entry.get())
+        except ValueError:
+            messagebox.showerror("Fejl", "x-min og x-max skal være tal.")
+            return
 
         xs = np.linspace(xmin, xmax, 2000)
         intersections = []
@@ -447,8 +451,12 @@ class Funktionstegner:
 
     # ---------- Akse-skæringer ----------
     def find_axis_intersections(self):
-        xmin = float(self.xmin_entry.get())
-        xmax = float(self.xmax_entry.get())
+        try:
+            xmin = float(self.xmin_entry.get())
+            xmax = float(self.xmax_entry.get())
+        except ValueError:
+            messagebox.showerror("Fejl", "x-min og x-max skal være tal.")
+            return
 
         xs = np.linspace(xmin, xmax, 2000)
 
@@ -482,14 +490,19 @@ class Funktionstegner:
 
     # ---------- Toppunkt ----------
     def find_vertex(self):
+        try:
+            xmin = float(self.xmin_entry.get())
+            xmax = float(self.xmax_entry.get())
+        except ValueError:
+            messagebox.showerror("Fejl", "x-min og x-max skal være tal.")
+            return
+
         for f in self.functions:
             expr = f["expr"]
 
             if "x**2" not in expr:
                 continue
 
-            xmin = float(self.xmin_entry.get())
-            xmax = float(self.xmax_entry.get())
             xs = np.linspace(xmin, xmax, 2000)
             ys = f["lambda"](xs)
 

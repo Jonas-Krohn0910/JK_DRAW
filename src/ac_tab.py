@@ -628,7 +628,7 @@ class Editor:
         self.canvas.pack(fill=tk.BOTH, expand=True)
         self.canvas.editor = self
 
-        self.canvas.bind_class("Canvas", "<Button-1>", self.on_canvas_click)
+        self.canvas.bind("<Button-1>", self.on_canvas_click)
 
 
         # Data

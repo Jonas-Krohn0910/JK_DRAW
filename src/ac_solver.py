@@ -152,21 +152,24 @@ class ACSolver:
 
             if t == "R":
                 R = c["value"]
-                Icomp = (V1 - V2) / R
+                Icomp = (V1 - V2) / R if R != 0 else 0 + 0j
 
             elif t == "L":
                 L = c["value"]
                 Z = 1j * omega * L
-                Icomp = (V1 - V2) / Z
+                Icomp = (V1 - V2) / Z if Z != 0 else 0 + 0j
 
             elif t == "C":
                 Cval = c["value"]
-                Z = 1.0 / (1j * omega * Cval)
-                Icomp = (V1 - V2) / Z
+                if Cval == 0:
+                    Icomp = 0 + 0j
+                else:
+                    Z = 1.0 / (1j * omega * Cval)
+                    Icomp = (V1 - V2) / Z
 
             elif t == "Z":
                 Z = c["value"]
-                Icomp = (V1 - V2) / Z
+                Icomp = (V1 - V2) / Z if Z != 0 else 0 + 0j
 
             elif t == "AC":
                 idx = None

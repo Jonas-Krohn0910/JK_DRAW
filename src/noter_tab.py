@@ -234,31 +234,45 @@ class NoterTab:
         page_gap = 15
         canvas_width = max(canvas.winfo_width(), 200)
 
-        for page_num in range(len(doc)):
-            page = doc[page_num]
+        try:
+            for page_num in range(len(doc)):
+                page = doc[page_num]
 
-            page_width = page.rect.width
-            base_scale = (canvas_width - 20) / page_width
-            scale = base_scale * state["zoom"]
-            mat = fitz.Matrix(scale, scale)
+                page_width = page.rect.width
+                if page_width <= 0:
+                    continue
 
-            pix = page.get_pixmap(matrix=mat)
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            photo = ImageTk.PhotoImage(img)
+                base_scale = (canvas_width - 20) / page_width
+                scale = base_scale * state["zoom"]
+                mat = fitz.Matrix(scale, scale)
 
-            state["photo_refs"].append(photo)
+                pix = page.get_pixmap(matrix=mat)
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                photo = ImageTk.PhotoImage(img)
 
-            canvas.create_image(10, y_offset, anchor="nw", image=photo)
+                state["photo_refs"].append(photo)
 
+                canvas.create_image(10, y_offset, anchor="nw", image=photo)
+
+                canvas.create_text(
+                    10 + pix.width / 2,
+                    y_offset + pix.height + 4,
+                    text=f"Side {page_num + 1} / {len(doc)}",
+                    font=("Arial", 8),
+                    fill="gray"
+                )
+
+                y_offset += pix.height + page_gap
+        except Exception as e:
+            doc.close()
             canvas.create_text(
-                10 + pix.width / 2,
-                y_offset + pix.height + 4,
-                text=f"Side {page_num + 1} / {len(doc)}",
-                font=("Arial", 8),
-                fill="gray"
+                300, 150,
+                text=f"Fejl ved visning af PDF:\n{e}",
+                font=("Arial", 11),
+                fill="red"
             )
-
-            y_offset += pix.height + page_gap
+            status_var.set("Fejl ved indlæsning")
+            return
 
         canvas.configure(scrollregion=(0, 0, canvas_width, y_offset))
         doc.close()
