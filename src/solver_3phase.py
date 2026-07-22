@@ -80,6 +80,8 @@ def solve_3phase(netlist, phases):
             "N": I_node.get("N", 0 + 0j),
         }
 
+        node_voltage = {n: phases[n]["V"] for n in phases}
+
     else:
         # -------------------------------------------------
         # 2) Opbyg Y-matrix (admittansmatrix)
@@ -221,8 +223,169 @@ def solve_3phase(netlist, phases):
             S_phase[ph] = 0 + 0j
             cosphi[ph] = 1.0
 
+    steps = build_calculation_steps(netlist, phases, node_voltage, I_phase, S_phase, cosphi)
+
     return {
         "I": I_phase,
         "S": S_phase,
         "cosphi": cosphi,
+        "steps": steps,
     }
+
+
+def _fmt_polar(z, unit=""):
+    """Formaterer et komplekst tal som 'størrelse @ vinkel°', uden tegn
+    (∠, ω, φ, π) der ikke gengives korrekt af PDF-eksportens standardfont."""
+    mag = abs(z)
+    ang = math.degrees(cmath.phase(z))
+    suffix = f" {unit}" if unit else ""
+    return f"{mag:.4f} @ {ang:.2f}°{suffix}"
+
+
+def build_calculation_steps(netlist, phases, node_voltage, I_phase, S_phase, cosphi):
+    """Bygger en styled, læsbar gennemgang af hele 3-faset beregningen,
+    til brug i PDF-eksporten af mellemregninger.
+
+    Returnerer en liste af {"style": ..., "text": ...} i stedet for flad
+    tekst, så PDF-eksporten kan give den visuel hierarki (titel/sektion/
+    komponent/resultat) - en ren tekst-væg viste sig uoverskuelig for
+    brugeren i praksis.
+    """
+    steps = []
+
+    def add(style, text=""):
+        steps.append({"style": style, "text": text})
+
+    type_names = {"R": "Modstand", "L": "Spole", "C": "Kondensator", "Z": "Impedans"}
+
+    # ---------------------------------------------------------
+    # Resultat-overblik - svaret først, så man ikke skal lede efter det
+    # ---------------------------------------------------------
+    add("title", "3-faset AC-beregning")
+    add("section", "RESULTAT-OVERBLIK")
+
+    add("table_header", f"{'Fase':<6}{'Stroem (I)':<24}{'S (VA)':>10}{'P (W)':>11}{'Q (var)':>11}{'cos(phi)':>11}")
+    for ph in ("L1", "L2", "L3"):
+        I = I_phase[ph]
+        S = S_phase[ph]
+        add(
+            "result",
+            f"{ph:<6}{_fmt_polar(I):<24}{abs(S):>10.1f}{S.real:>11.1f}{S.imag:>11.1f}{cosphi[ph]:>11.4f}",
+        )
+    add("body", f"{'N':<6}{_fmt_polar(I_phase['N'], 'A')}  (nulleder-stroem)")
+    add("spacer")
+
+    add("body", "Linjespaendinger:")
+    for a, b in (("L1", "L2"), ("L2", "L3"), ("L3", "L1")):
+        Vline = phases[a]["V"] - phases[b]["V"]
+        add("result", f"  U_{a}{b} = {_fmt_polar(Vline, 'V')}")
+    add("spacer")
+    add("body", "Se de fulde mellemregninger for hvert trin herunder.")
+    add("spacer")
+
+    # ---------------------------------------------------------
+    # Kildespændinger
+    # ---------------------------------------------------------
+    add("section", "KILDESPAENDINGER OG FREKVENS")
+    for node in ("L1", "L2", "L3"):
+        V = phases[node]["V"]
+        f = phases[node]["f"]
+        add("body", f"  U_{node} = {_fmt_polar(V, 'V')}   (f = {f:.3f} Hz)")
+    add("body", f"  U_N  = {_fmt_polar(phases['N']['V'], 'V')}  (nulpunkt)")
+    add("spacer")
+
+    # ---------------------------------------------------------
+    # Interne knudepunkter (kun hvis relevant)
+    # ---------------------------------------------------------
+    extra_nodes = [n for n in node_voltage if n not in ("L1", "L2", "L3", "N")]
+    if extra_nodes:
+        add("section", "LOESTE KNUDESPAENDINGER (interne knudepunkter)")
+        add("body", "  Fundet ved at loese admittansmatrix-ligningen Y*V = I")
+        for n in extra_nodes:
+            add("result", f"  U_{n} = {_fmt_polar(node_voltage[n], 'V')}")
+        add("spacer")
+
+    # ---------------------------------------------------------
+    # Komponent-for-komponent
+    # ---------------------------------------------------------
+    add("section", "KOMPONENTBEREGNINGER")
+
+    for name, comp in netlist.components.items():
+        ctype = comp["type"]
+        n1, n2 = comp["n1"], comp["n2"]
+        val = float(comp["value"])
+        angle_deg = float(comp.get("angle", 0.0))
+
+        f = phases.get(n1, phases["L1"])["f"]
+        w = 2 * math.pi * f
+
+        add("component", f"{name} - {type_names.get(ctype, ctype)} (mellem {n1} og {n2})")
+
+        if ctype == "R":
+            Z = val
+            add("body", f"  Z = R = {val:.4f} Ohm  ->  {_fmt_polar(Z, 'Ohm')}")
+        elif ctype == "L":
+            L_H = val / 1000.0
+            Z = 1j * w * L_H
+            add("body", f"  L = {val:.4f} mH = {L_H:.6f} H,  w = 2*pi*{f:.3f} = {w:.4f} rad/s")
+            add("body", f"  Z = j*w*L = {_fmt_polar(Z, 'Ohm')}")
+        elif ctype == "C":
+            if val == 0:
+                add("body", "  C = 0 µF -> springes over (uendelig impedans)")
+                add("spacer")
+                continue
+            C_F = val * 1e-6
+            Z = 1 / (1j * w * C_F)
+            add("body", f"  C = {val:.4f} µF = {C_F:.9f} F,  w = 2*pi*{f:.3f} = {w:.4f} rad/s")
+            add("body", f"  Z = 1/(j*w*C) = {_fmt_polar(Z, 'Ohm')}")
+        elif ctype == "Z":
+            Z = cmath.rect(val, math.radians(angle_deg))
+            add("body", f"  |Z| = {val:.4f} Ohm,  vinkel = {angle_deg:.2f}°")
+            add("body", f"  Z = {_fmt_polar(Z, 'Ohm')}")
+        else:
+            add("body", "  Ukendt komponenttype - springes over")
+            add("spacer")
+            continue
+
+        if Z == 0:
+            add("body", "  Z = 0 -> springes over (kortslutning)")
+            add("spacer")
+            continue
+
+        V1 = node_voltage.get(n1, 0 + 0j)
+        V2 = node_voltage.get(n2, 0 + 0j)
+        I = (V1 - V2) / Z
+
+        add("body", f"  U_{n1} = {_fmt_polar(V1, 'V')},  U_{n2} = {_fmt_polar(V2, 'V')}")
+        add("result", f"  I = (U_{n1} - U_{n2}) / Z = {_fmt_polar(I, 'A')}")
+        add("spacer")
+
+    # ---------------------------------------------------------
+    # Sammenfatning + effekt (fuld udregning, ikke kun facit)
+    # ---------------------------------------------------------
+    add("section", "SAMMENFATTEDE FASESTROEMME")
+    add("body", "  (sum af gren-stroemme ind/ud af hver knude)")
+    for ph in ("L1", "L2", "L3", "N"):
+        add("result", f"  I_{ph} = {_fmt_polar(I_phase[ph], 'A')}")
+    add("spacer")
+
+    add("section", "EFFEKT PR. FASE (S = U * I*)")
+    for ph in ("L1", "L2", "L3"):
+        V = phases[ph]["V"]
+        I = I_phase[ph]
+        S = S_phase[ph]
+        add("component", ph)
+        add("body", f"  S = U_{ph} * I_{ph}* = {_fmt_polar(V, 'V')} * conj({_fmt_polar(I, 'A')})")
+        add(
+            "result",
+            f"  S = {abs(S):.4f} VA,  P = {S.real:.4f} W,  Q = {S.imag:.4f} var,  cos(phi) = {cosphi[ph]:.4f}",
+        )
+    add("spacer")
+
+    add("section", "LINJESPAENDINGER")
+    for a, b in (("L1", "L2"), ("L2", "L3"), ("L3", "L1")):
+        Vline = phases[a]["V"] - phases[b]["V"]
+        add("body", f"  U_{a}{b} = U_{a} - U_{b}")
+        add("result", f"  U_{a}{b} = {_fmt_polar(Vline, 'V')}")
+
+    return steps

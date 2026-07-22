@@ -5,6 +5,7 @@ from netlist_3phase import Netlist3Phase
 from solver_3phase import solve_3phase
 import math
 import cmath
+import fitz
 
 
 class AC3Tab:
@@ -109,15 +110,6 @@ class AC3Tab:
         self.current_tool = tool
         self.slot_clicks = []
         self.show_slots()
-    def _zoom(self, event):
-        # Zoomfaktor
-        scale = 1.1 if event.delta > 0 else 0.9
-
-        # Zoom omkring musepositionen
-        self.canvas.scale("all", event.x, event.y, scale, scale)
-
-        # Opdater scrollregion så canvas følger med
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
     def start_resize(self, event):
         widget = self.canvas
         self.resize_start = (
@@ -372,27 +364,6 @@ class AC3Tab:
 
         entry.bind("<Return>", lambda e: finish(True))
         entry.bind("<Escape>", lambda e: finish(False))
-
-    # ---------------------------------------------------------
-    # Highlight
-    # ---------------------------------------------------------
-    def _highlight_component(self, name):
-        comp = self.netlist.components.get(name)
-        if not comp:
-            return
-
-        for other_name, other_comp in self.netlist.components.items():
-            for cid in other_comp.get("canvas_ids", []):
-                try:
-                    self.canvas.itemconfig(cid, width=2, outline="black")
-                except tk.TclError:
-                    pass
-
-        for cid in comp.get("canvas_ids", []):
-            try:
-                self.canvas.itemconfig(cid, width=3, outline="red")
-            except tk.TclError:
-                pass
 
     # ---------------------------------------------------------
     # Fase-rækker
@@ -652,29 +623,6 @@ class AC3Tab:
         # 4) Reflow dashboard-layout
         self._reflow_component_boxes()
 
-
-    def redraw(self):
-        # 1) Slet ALT på canvas
-        self.canvas.delete("all")
-
-        # 2) Genskab fase-linjer
-        self._build_phase_rows()
-
-        # 3) Genskab alle komponenter på canvas
-        self.netlist.redraw_all(self.canvas, self.node_y)
-
-        # 4) Ryd dashboard HELT (destroy, ikke grid_forget)
-        for child in self.dashboard_inner.winfo_children():
-            child.destroy()
-
-        # 5) Ryd mapping
-        self.component_boxes.clear()
-
-        # 6) Genskab dashboard-bokse for alle eksisterende komponenter
-        for name in self.netlist.components.keys():
-            self._create_component_box(name)
-
-
     # ---------------------------------------------------------
     # Solver
     # ---------------------------------------------------------
@@ -773,6 +721,79 @@ class AC3Tab:
             except Exception as e:
                 messagebox.showerror("Fejl", f"Kunne ikke eksportere vektorer:\n{e}")
 
+        def export_calculation_pdf():
+            steps = results.get("steps", [])
+            if not steps:
+                messagebox.showwarning("Ingen data", "Der er ingen mellemregninger at eksportere.")
+                return
+
+            path = filedialog.asksaveasfilename(
+                defaultextension=".pdf",
+                filetypes=[("PDF files", "*.pdf")]
+            )
+            if not path:
+                return
+
+            # Skrifttype/størrelse/linjehøjde pr. "stiltype" fra
+            # build_calculation_steps() - giver visuel hierarki (titel,
+            # sektion, komponent, resultat) i stedet for en flad tekst-væg.
+            STYLES = {
+                "title":        {"font": "hebo", "size": 16,  "height": 28, "indent": 0},
+                "section":      {"font": "hebo", "size": 11,  "height": 24, "indent": 0},
+                "table_header": {"font": "cobo", "size": 8.5, "height": 13, "indent": 6},
+                "component":    {"font": "hebo", "size": 9.5, "height": 15, "indent": 6},
+                "body":         {"font": "cour", "size": 8.5, "height": 12, "indent": 12},
+                "result":       {"font": "cobo", "size": 8.5, "height": 13, "indent": 12},
+                "spacer":       {"font": "cour", "size": 8.5, "height": 8,  "indent": 0},
+            }
+
+            page_width, page_height = 595, 842  # A4 i punkter
+            margin_x = 50
+            top_margin = 50
+            bottom_margin = 50
+            content_width = page_width - 2 * margin_x
+
+            try:
+                doc = fitz.open()
+                page = doc.new_page(width=page_width, height=page_height)
+                y = top_margin
+
+                for i, step in enumerate(steps):
+                    style = STYLES.get(step["style"], STYLES["body"])
+                    line_h = style["height"]
+
+                    # Lidt luft over hver ny sektion, undtagen den allerførste
+                    if step["style"] == "section" and i != 0:
+                        y += 8
+
+                    if y + line_h > page_height - bottom_margin:
+                        page = doc.new_page(width=page_width, height=page_height)
+                        y = top_margin
+
+                    if step["style"] == "section" and step["text"]:
+                        page.draw_rect(
+                            fitz.Rect(margin_x - 4, y - style["size"] - 3,
+                                      margin_x + content_width + 4, y + 6),
+                            color=None, fill=(0.90, 0.90, 0.95),
+                        )
+
+                    if step["text"]:
+                        page.insert_text(
+                            (margin_x + style["indent"], y),
+                            step["text"],
+                            fontsize=style["size"],
+                            fontname=style["font"],
+                        )
+
+                    y += line_h
+
+                doc.save(path)
+                doc.close()
+
+                messagebox.showinfo("Eksporteret", "Mellemregningerne er gemt som PDF.")
+
+            except Exception as e:
+                messagebox.showerror("Fejl", f"Kunne ikke oprette PDF:\n{e}")
 
         scrollbar = tk.Scrollbar(text)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -818,14 +839,16 @@ class AC3Tab:
         # ---------------------------------------------------------
         text.insert(tk.END, "=== LINJESPÆNDINGER ===\n")
         V = results["V"]  # vi tilføjer dette i run_solver
-        text.insert(tk.END, f"  V_L1L2 = {fmt_complex(V['L1'] - V['L2'])} V\n")
-        text.insert(tk.END, f"  V_L2L3 = {fmt_complex(V['L2'] - V['L3'])} V\n")
-        text.insert(tk.END, f"  V_L3L1 = {fmt_complex(V['L3'] - V['L1'])} V\n")
+        text.insert(tk.END, f"  U_L1L2 = {fmt_complex(V['L1'] - V['L2'])} V\n")
+        text.insert(tk.END, f"  U_L2L3 = {fmt_complex(V['L2'] - V['L3'])} V\n")
+        text.insert(tk.END, f"  U_L3L1 = {fmt_complex(V['L3'] - V['L1'])} V\n")
 
         btn_frame = tk.Frame(win)
         btn_frame.pack(fill=tk.X, pady=5)
         export_btn = tk.Button(btn_frame, text="Eksporter vektordiagram til VectorTab", command=export_vectors)
         export_btn.pack(side=tk.RIGHT, padx=10)
+        calc_btn = tk.Button(btn_frame, text="See calculation", command=export_calculation_pdf)
+        calc_btn.pack(side=tk.RIGHT, padx=10)
 
         
 # Standalone test
