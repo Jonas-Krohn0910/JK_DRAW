@@ -97,7 +97,7 @@ class MainApp:
         vector_scroll = ScrollableFrame(self.notebook)
         self.vector_tab = VectorTab(vector_scroll.scrollable_frame)
         self.vector_tab.frame.pack(fill="both", expand=True)
-        self.notebook.add(vector_scroll, text="Vektorværktøj")
+        self.notebook.add(vector_scroll, text="🆕 Vektorværktøj")
 
         # -------------------------
         # Funktionsfit (scroll)

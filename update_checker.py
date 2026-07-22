@@ -51,28 +51,37 @@ def requirements_changed(old_path, new_path):
 
 
 def install_requirements_if_needed():
-    """Installerer kun dependencies hvis requirements.txt er ændret."""
+    """Installerer kun dependencies hvis requirements.txt er ændret.
+
+    Returnerer True hvis alt gik godt (eller intet skulle installeres),
+    False hvis pip-installationen fejlede. Kaster ikke videre, da appen
+    koeres via pythonw.exe uden konsol - en ufanget exception her ville
+    bare fryse/lukke programmet uden nogen fejlbesked til brugeren.
+    """
     src_req = os.path.join(get_src_root(), "requirements.txt")
     local_req = os.path.join(get_project_root(), "requirements.txt")
 
     if not os.path.exists(src_req):
         print("[INFO] Ingen requirements.txt i src/. Springer over.")
-        return
+        return True
 
-    # Første gang
     if not os.path.exists(local_req):
         print("[INFO] Første installation af requirements.txt")
-        shutil.copy2(src_req, local_req)
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", local_req])
-        return
-
-    # Sammenlign
-    if requirements_changed(local_req, src_req):
+        needs_install = True
+    elif requirements_changed(local_req, src_req):
         print("[INFO] Nye dependencies fundet. Installerer...")
-        shutil.copy2(src_req, local_req)
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", local_req])
+        needs_install = True
     else:
         print("[INFO] Dependencies er uændrede. Springer installation over.")
+        return True
+
+    shutil.copy2(src_req, local_req)
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", local_req])
+        return True
+    except Exception as e:
+        print(f"[FEJL] Kunne ikke installere dependencies: {e}")
+        return False
 
 
 # ---------------------------------------------------------
@@ -176,8 +185,12 @@ def download_and_extract_zip():
 
         print("[DEBUG] src/ opdateret korrekt")
 
+        # Disse hoerer til installer-pakken og skal ikke ligge i en
+        # koerende installation - de bliver bare unoedvendig bloat.
+        EXCLUDED_ROOT_ITEMS = {"src", "installer", "Troubleshoot", "setup.bat"}
+
         for item in os.listdir(extracted_root):
-            if item == "src":
+            if item in EXCLUDED_ROOT_ITEMS:
                 continue
 
             s = os.path.join(extracted_root, item)
@@ -237,10 +250,18 @@ def check_for_updates(show_popup=False):
             except Exception as e:
                 print(f"[FEJL] Kunne ikke skrive version.txt: {e}")
 
-            install_requirements_if_needed()
+            deps_ok = install_requirements_if_needed()
 
             if show_popup:
-                mb.showinfo("Opdatering", f"Programmet er opdateret til {online}.")
+                if deps_ok:
+                    mb.showinfo("Opdatering", f"Programmet er opdateret til {online}.")
+                else:
+                    mb.showwarning(
+                        "Opdatering",
+                        f"Programmet er opdateret til {online}, men nogle "
+                        "pakker kunne ikke installeres.\nProgrammet virker "
+                        "muligvis ikke korrekt, indtil dette er rettet."
+                    )
                 if mb.askyesno("Genstart", "Programmet er opdateret.\nVil du genstarte nu?"):
                     python_exe = sys.executable
                     script_path = os.path.join(get_src_root(), "main.py")
