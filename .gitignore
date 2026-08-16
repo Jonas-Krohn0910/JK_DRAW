@@ -205,3 +205,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# License (hardware-bundet licens) - privat Ed25519-nøgle og lokalt gemt nøgle
+src/private_key.pem
+license_key.json

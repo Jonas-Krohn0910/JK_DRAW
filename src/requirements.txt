@@ -8,3 +8,4 @@ requests
 colorama
 pymupdf
 pillow
+cryptography

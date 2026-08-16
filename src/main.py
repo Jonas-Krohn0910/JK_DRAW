@@ -8,6 +8,7 @@ from funktionstegner import Funktionstegner
 from ac_tab import ACTab
 from AC3_tab import AC3Tab 
 from noter_tab import NoterTab   # øverst med de andre imports
+from installator_tab import InstallatorTab
 
 import sys
 import os
@@ -97,7 +98,7 @@ class MainApp:
         vector_scroll = ScrollableFrame(self.notebook)
         self.vector_tab = VectorTab(vector_scroll.scrollable_frame)
         self.vector_tab.frame.pack(fill="both", expand=True)
-        self.notebook.add(vector_scroll, text="Vektorværktøj")
+        self.notebook.add(vector_scroll, text="🆕 Vektorværktøj")
 
         # -------------------------
         # Funktionsfit (scroll)
@@ -137,7 +138,13 @@ class MainApp:
         self.noter_tab.frame.pack(fill="both", expand=True)
         self.notebook.add(noter_scroll, text="Noter")
 
-
+        # -------------------------
+        # Installatør (scroll, låst bag hardware-bundet licens)
+        # -------------------------
+        installator_scroll = ScrollableFrame(self.notebook)
+        self.installator_tab = InstallatorTab(installator_scroll.scrollable_frame)
+        self.installator_tab.frame.pack(fill="both", expand=True)
+        self.notebook.add(installator_scroll, text="Installatør")
 
         # -------------------------
         # Hjælp (har allerede scroll)
