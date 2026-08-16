@@ -205,3 +205,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# License (hardware-bundet licens) - hemmeligheder og lokalt gemt nøgle
+src/config.py
+license_key.json
