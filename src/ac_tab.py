@@ -1,6 +1,7 @@
 import math
 import tkinter as tk
 from tkinter import simpledialog, messagebox, filedialog
+import fitz
 
 from ac_solver import ACSolver
 
@@ -909,7 +910,9 @@ class Editor:
                     "n1": n1,
                     "n2": n2,
                     "voltage": c.voltage_si,
-                    "frequency": c.frequency_si
+                    "frequency": c.frequency_si,
+                    "voltage_raw": c.voltage_raw,
+                    "frequency_raw": c.frequency_raw
                 })
 
             elif c.ctype == "R":
@@ -918,7 +921,8 @@ class Editor:
                     "type": "R",
                     "n1": n1,
                     "n2": n2,
-                    "value": c.value_si
+                    "value": c.value_si,
+                    "value_raw": c.value_raw
                 })
 
             elif c.ctype == "L":
@@ -927,7 +931,8 @@ class Editor:
                     "type": "L",
                     "n1": n1,
                     "n2": n2,
-                    "value": c.value_si
+                    "value": c.value_si,
+                    "value_raw": c.value_raw
                 })
 
             elif c.ctype == "C":
@@ -936,7 +941,8 @@ class Editor:
                     "type": "C",
                     "n1": n1,
                     "n2": n2,
-                    "value": c.value_si
+                    "value": c.value_si,
+                    "value_raw": c.value_raw
                 })
             elif c.ctype == "Z":
                 components_data.append({
@@ -944,7 +950,9 @@ class Editor:
                     "type": "Z",
                     "n1": n1,
                     "n2": n2,
-                    "value": c.value_si
+                    "value": c.value_si,
+                    "R_raw": c.R_raw,
+                    "phi_raw": c.phi_raw
                 })
 
         if frequency == 0:
@@ -1043,12 +1051,84 @@ class Editor:
             except Exception as e:
                 messagebox.showerror("Fejl", f"Kunne ikke eksportere vektorer:\n{e}")
 
+        def export_calculation_pdf():
+            steps = results.get("steps", [])
+            if not steps:
+                messagebox.showwarning("Ingen data", "Der er ingen mellemregninger at eksportere.")
+                return
+
+            path = filedialog.asksaveasfilename(
+                defaultextension=".pdf",
+                filetypes=[("PDF files", "*.pdf")]
+            )
+            if not path:
+                return
+
+            STYLES = {
+                "title":        {"font": "hebo", "size": 16,  "height": 28, "indent": 0},
+                "section":      {"font": "hebo", "size": 11,  "height": 24, "indent": 0},
+                "table_header": {"font": "cobo", "size": 8.5, "height": 13, "indent": 6},
+                "component":    {"font": "hebo", "size": 9.5, "height": 15, "indent": 6},
+                "body":         {"font": "cour", "size": 8.5, "height": 12, "indent": 12},
+                "result":       {"font": "cobo", "size": 8.5, "height": 13, "indent": 12},
+                "spacer":       {"font": "cour", "size": 8.5, "height": 8,  "indent": 0},
+            }
+
+            page_width, page_height = 595, 842  # A4 i punkter
+            margin_x = 50
+            top_margin = 50
+            bottom_margin = 50
+            content_width = page_width - 2 * margin_x
+
+            try:
+                doc = fitz.open()
+                page = doc.new_page(width=page_width, height=page_height)
+                y = top_margin
+
+                for i, step in enumerate(steps):
+                    style = STYLES.get(step["style"], STYLES["body"])
+                    line_h = style["height"]
+
+                    if step["style"] == "section" and i != 0:
+                        y += 8
+
+                    if y + line_h > page_height - bottom_margin:
+                        page = doc.new_page(width=page_width, height=page_height)
+                        y = top_margin
+
+                    if step["style"] == "section" and step["text"]:
+                        page.draw_rect(
+                            fitz.Rect(margin_x - 4, y - style["size"] - 3,
+                                      margin_x + content_width + 4, y + 6),
+                            color=None, fill=(0.90, 0.90, 0.95),
+                        )
+
+                    if step["text"]:
+                        page.insert_text(
+                            (margin_x + style["indent"], y),
+                            step["text"],
+                            fontsize=style["size"],
+                            fontname=style["font"],
+                        )
+
+                    y += line_h
+
+                doc.save(path)
+                doc.close()
+
+                messagebox.showinfo("Eksporteret", "Mellemregningerne er gemt som PDF.")
+
+            except Exception as e:
+                messagebox.showerror("Fejl", f"Kunne ikke oprette PDF:\n{e}")
+
         # Knap nederst i popup
         btn_frame = tk.Frame(win)
         btn_frame.pack(fill=tk.X, pady=5)
 
         export_btn = tk.Button(btn_frame, text="Eksporter vektordiagram til VectorTab", command=export_vectors)
         export_btn.pack(side=tk.RIGHT, padx=10)
+        calc_btn = tk.Button(btn_frame, text="See calculation", command=export_calculation_pdf)
+        calc_btn.pack(side=tk.RIGHT, padx=10)
 
 
 class ACTab:
